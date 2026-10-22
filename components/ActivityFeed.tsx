@@ -266,7 +266,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
 
       {/* VISTA 2: VITRINA DE RÉCORDS PERSONALES */}
       {activeTab === 'records' && (
-        <PersonalRecords />
+        <PersonalRecords activities={activities} />
       )}
 
       {/* VISTA 3: GESTOR DE DESGASTE DE MATERIAL */}

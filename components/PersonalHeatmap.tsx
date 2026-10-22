@@ -406,7 +406,15 @@ export function PersonalHeatmap() {
         {loading && (
           <div className="absolute inset-0 z-20 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold gap-2">
             <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
-            <span>Optimizando coordenadas térmicas...</span>
+            <span>Cargando tus rutas...</span>
+          </div>
+        )}
+        {!loading && filteredTracks.length === 0 && (
+          <div className="absolute top-4 left-4 right-4 z-20 p-4 rounded-xl bg-slate-900/90 border border-slate-700 backdrop-blur-md text-white text-xs space-y-1 shadow-xl max-w-md mx-auto text-center">
+            <p className="font-bold text-cyan-400">Sin trazados registrados todavía</p>
+            <p className="text-slate-300 text-[11px]">
+              Tus caminos y salidas de Garmin, Strava o COROS se dibujarán automáticamente aquí con acumulación térmica según los vayas registrando.
+            </p>
           </div>
         )}
         <div ref={mapContainerRef} className="w-full h-full" />

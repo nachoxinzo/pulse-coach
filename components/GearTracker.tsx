@@ -44,84 +44,10 @@ export interface GearItem {
   components?: GearComponent[];
 }
 
-const INITIAL_GEAR: GearItem[] = [
-  {
-    id: 'gear-shoes-1',
-    name: 'Asics Novablast 4',
-    brand: 'Asics',
-    model: 'Novablast 4',
-    type: 'shoes',
-    sportType: 'running',
-    currentKm: 485,
-    maxKm: 750,
-    purchaseDate: '12 Ene 2026',
-    isDefault: true,
-    status: 'good'
-  },
-  {
-    id: 'gear-shoes-2',
-    name: 'Hoka Speedgoat 5 (Trail)',
-    brand: 'Hoka',
-    model: 'Speedgoat 5',
-    type: 'shoes',
-    sportType: 'trail',
-    currentKm: 690,
-    maxKm: 700,
-    purchaseDate: '18 Nov 2025',
-    isDefault: false,
-    status: 'warning'
-  },
-  {
-    id: 'gear-bike-1',
-    name: 'Orbea Oiz Carbon 29"',
-    brand: 'Orbea',
-    model: 'Oiz M-Pro',
-    type: 'bike',
-    sportType: 'mtb',
-    currentKm: 2840,
-    maxKm: 15000,
-    purchaseDate: '10 May 2025',
-    isDefault: true,
-    status: 'good',
-    components: [
-      {
-        id: 'comp-chain',
-        name: 'Cadena SRAM GX Eagle 12v',
-        currentKm: 2320,
-        maxKm: 2500,
-        lastReplacedDate: '15 Sep 2025',
-        status: 'warning'
-      },
-      {
-        id: 'comp-tyres',
-        name: 'Cubiertas Maxxis Rekon Race 2.35',
-        currentKm: 1850,
-        maxKm: 3200,
-        lastReplacedDate: '20 Oct 2025',
-        status: 'good'
-      },
-      {
-        id: 'comp-brakes',
-        name: 'Pastillas Freno Shimano XT Resina',
-        currentKm: 1420,
-        maxKm: 1500,
-        lastReplacedDate: '05 Nov 2025',
-        status: 'replace'
-      },
-      {
-        id: 'comp-tubeless',
-        name: 'Líquido Sellante Tubeless Stan\'s',
-        currentKm: 650,
-        maxKm: 1000,
-        lastReplacedDate: '10 Feb 2026',
-        status: 'good'
-      }
-    ]
-  }
-];
+const INITIAL_GEAR: GearItem[] = [];
 
 export function GearTracker() {
-  const [gearList, setGearList] = useState<GearItem[]>(INITIAL_GEAR);
+  const [gearList, setGearList] = useState<GearItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'shoes' | 'bikes'>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newGearType, setNewGearType] = useState<'shoes' | 'bike'>('shoes');
@@ -134,7 +60,13 @@ export function GearTracker() {
     try {
       const stored = localStorage.getItem('pulse_gear_items');
       if (stored) {
-        setGearList(JSON.parse(stored));
+        const parsed: GearItem[] = JSON.parse(stored);
+        // Filtrar antiguos ejemplos simulados para dejar solo datos reales del usuario
+        const realGear = parsed.filter(g => !g.id.startsWith('gear-shoes-') && !g.id.startsWith('gear-bike-'));
+        setGearList(realGear);
+        if (realGear.length !== parsed.length) {
+          localStorage.setItem('pulse_gear_items', JSON.stringify(realGear));
+        }
       }
     } catch {
       // Fallback
@@ -291,164 +223,185 @@ export function GearTracker() {
         </div>
       </div>
 
-      {/* Lista de Material */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredGear.map(item => {
-          const pct = Math.min(100, Math.round((item.currentKm / item.maxKm) * 100));
-          const remainingKm = Math.max(0, item.maxKm - item.currentKm);
-          const isWarning = pct >= 85 && pct < 100;
-          const isExpired = pct >= 100;
+      {/* Lista de Material o Estado Vacío */}
+      {filteredGear.length === 0 ? (
+        <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+            <Footprints className="w-6 h-6 stroke-[1.8]" />
+          </div>
+          <div className="max-w-sm mx-auto space-y-1">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Sin material registrado todavía</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Añade tus zapatillas de running o tu bicicleta para que el sistema contabilice el kilometraje de tus entrenamientos y te avise del desgaste de cadena y suela.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition-all active:scale-[0.98] shadow-xs"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Añadir Mi Primer Material</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredGear.map(item => {
+            const pct = Math.min(100, Math.round((item.currentKm / item.maxKm) * 100));
+            const remainingKm = Math.max(0, item.maxKm - item.currentKm);
+            const isWarning = pct >= 85 && pct < 100;
+            const isExpired = pct >= 100;
 
-          return (
-            <div 
-              key={item.id}
-              className={`rounded-xl border p-4 transition-all ${
-                isExpired 
-                  ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20' 
-                  : isWarning 
-                  ? 'border-amber-300 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/20' 
-                  : 'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60'
-              }`}
-            >
-              {/* Encabezado del elemento */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    item.type === 'shoes'
-                      ? 'bg-cyan-100/80 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800'
-                      : 'bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                  }`}>
-                    {item.type === 'shoes' ? (
-                      <Footprints className="w-5 h-5 stroke-[2]" />
-                    ) : (
-                      <Bike className="w-5 h-5 stroke-[2]" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{item.brand}</span>
-                      {item.isDefault && (
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
-                          Predeterminado
-                        </span>
+            return (
+              <div 
+                key={item.id}
+                className={`rounded-xl border p-4 transition-all ${
+                  isExpired 
+                    ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20' 
+                    : isWarning 
+                    ? 'border-amber-300 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/20' 
+                    : 'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60'
+                }`}
+              >
+                {/* Encabezado del elemento */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                      item.type === 'shoes'
+                        ? 'bg-cyan-100/80 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800'
+                        : 'bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                    }`}>
+                      {item.type === 'shoes' ? (
+                        <Footprints className="w-5 h-5 stroke-[2]" />
+                      ) : (
+                        <Bike className="w-5 h-5 stroke-[2]" />
                       )}
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">{item.name}</h3>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{item.brand}</span>
+                        {item.isDefault && (
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                            Predeterminado
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">{item.name}</h3>
+                    </div>
+                  </div>
+
+                  {/* Badge de estado */}
+                  <div>
+                    {isExpired ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                        <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
+                        Reemplazar
+                      </span>
+                    ) : isWarning ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                        <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
+                        Vida Límite ({remainingKm} km)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <CheckCircle2 className="w-3 h-3 stroke-[2.5]" />
+                        Óptimo
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Badge de estado */}
-                <div>
-                  {isExpired ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-                      <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
-                      Reemplazar
+                {/* Barra de progreso de kilómetros */}
+                <div className="mt-4 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs tabular-nums">
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {item.currentKm} <span className="font-normal text-slate-400">/ {item.maxKm} km</span>
                     </span>
-                  ) : isWarning ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                      <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
-                      Vida Límite ({remainingKm} km)
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                      <CheckCircle2 className="w-3 h-3 stroke-[2.5]" />
-                      Óptimo
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Barra de progreso de kilómetros */}
-              <div className="mt-4 space-y-1.5">
-                <div className="flex items-center justify-between text-xs tabular-nums">
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {item.currentKm} <span className="font-normal text-slate-400">/ {item.maxKm} km</span>
-                  </span>
-                  <span className={`font-black ${
-                    isExpired ? 'text-rose-600 dark:text-rose-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'
-                  }`}>
-                    {pct}% vida útil
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all ${
-                      isExpired 
-                        ? 'bg-rose-500' 
-                        : isWarning 
-                        ? 'bg-amber-500' 
-                        : 'bg-gradient-to-r from-cyan-500 to-emerald-500'
-                    }`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Adquirido: {item.purchaseDate}</span>
-                  <span>{remainingKm > 0 ? `${remainingKm} km restantes` : 'Amortizado al 100%'}</span>
-                </div>
-              </div>
-
-              {/* Componentes individuales para bicis */}
-              {item.type === 'bike' && item.components && item.components.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5 text-cyan-500" />
-                      Desgaste de Transmisión & Frenos
+                    <span className={`font-black ${
+                      isExpired ? 'text-rose-600 dark:text-rose-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'
+                    }`}>
+                      {pct}% vida útil
                     </span>
                   </div>
+                  <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all ${
+                        isExpired 
+                          ? 'bg-rose-500' 
+                          : isWarning 
+                          ? 'bg-amber-500' 
+                          : 'bg-gradient-to-r from-cyan-500 to-emerald-500'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Adquirido: {item.purchaseDate}</span>
+                    <span>{remainingKm > 0 ? `${remainingKm} km restantes` : 'Amortizado al 100%'}</span>
+                  </div>
+                </div>
 
-                  <div className="space-y-2">
-                    {item.components.map(comp => {
-                      const compPct = Math.min(100, Math.round((comp.currentKm / comp.maxKm) * 100));
-                      const compAlert = compPct >= 90;
-                      return (
-                        <div key={comp.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-800 dark:text-slate-200">{comp.name}</span>
-                              {compAlert && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                                  ¡Cambiar!
-                                </span>
-                              )}
+                {/* Componentes individuales para bicis */}
+                {item.type === 'bike' && item.components && item.components.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <span className="flex items-center gap-1.5">
+                        <Wrench className="w-3.5 h-3.5 text-cyan-500" />
+                        Desgaste de Transmisión & Frenos
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {item.components.map(comp => {
+                        const compPct = Math.min(100, Math.round((comp.currentKm / comp.maxKm) * 100));
+                        const compAlert = compPct >= 90;
+                        return (
+                          <div key={comp.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-800 dark:text-slate-200">{comp.name}</span>
+                                {compAlert && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                                    ¡Cambiar!
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-slate-400 tabular-nums">
+                                {comp.currentKm} km / {comp.maxKm} km ({compPct}%)
+                              </span>
                             </div>
-                            <span className="text-[11px] text-slate-400 tabular-nums">
-                              {comp.currentKm} km / {comp.maxKm} km ({compPct}%)
-                            </span>
+
+                            <button
+                              onClick={() => handleResetComponent(item.id, comp.id)}
+                              className="self-end sm:self-auto flex items-center gap-1 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 text-[11px] font-semibold transition-all active:scale-[0.98] shadow-2xs"
+                              title="Registrar componente nuevo y reiniciar contador a 0 km"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Poner nuevo</span>
+                            </button>
                           </div>
-
-                          <button
-                            onClick={() => handleResetComponent(item.id, comp.id)}
-                            className="self-end sm:self-auto flex items-center gap-1 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 text-[11px] font-semibold transition-all active:scale-[0.98] shadow-2xs"
-                            title="Registrar componente nuevo y reiniciar contador a 0 km"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Poner nuevo</span>
-                          </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Botón hacer predeterminado si no lo es */}
-              {!item.isDefault && (
-                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                  <button
-                    onClick={() => handleSetDefault(item.id, item.type)}
-                    className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 flex items-center gap-1"
-                  >
-                    <span>Asignar por defecto a sesiones de {item.type === 'shoes' ? 'running' : 'ciclismo'}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                {/* Botón hacer predeterminado si no lo es */}
+                {!item.isDefault && (
+                  <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <button
+                      onClick={() => handleSetDefault(item.id, item.type)}
+                      className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 flex items-center gap-1"
+                    >
+                      <span>Asignar por defecto a sesiones de {item.type === 'shoes' ? 'running' : 'ciclismo'}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal para añadir nuevo material */}
       {isAddModalOpen && (

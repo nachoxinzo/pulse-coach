@@ -553,7 +553,7 @@ export function CorosDashboard({
       {/* ============================================================== */}
       {/* 4.6. VITRINA DE RÉCORDS PERSONALES (PRs & BEST EFFORTS) */}
       {/* ============================================================== */}
-      <PersonalRecords />
+      <PersonalRecords activities={activities} />
 
       {/* ============================================================== */}
       {/* 4.7. GESTOR DE DESGASTE DE MATERIAL (GEAR TRACKER) */}
