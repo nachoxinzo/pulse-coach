@@ -5,13 +5,14 @@ export const metadata: Metadata = {
   title: 'Pulse Coach | EvoLab Multisport Hub',
   description: 'Analítica biométrica avanzada estilo COROS EvoLab, coach adaptativo diario según tu estado y generador de rutas circulares con tracks GPX.',
   applicationName: 'Pulse Coach',
+  manifest: '/manifest.json',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Pulse Coach',
   },
 };

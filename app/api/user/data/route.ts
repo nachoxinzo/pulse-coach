@@ -107,6 +107,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true, metrics: updated });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error al actualizar datos de usuario:', error);
+    return NextResponse.json({ success: false, error: 'Error al actualizar los datos biométricos.' }, { status: 500 });
   }
 }

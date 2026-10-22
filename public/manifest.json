@@ -1,0 +1,26 @@
+{
+  "name": "Pulse Coach - Inteligencia Deportiva",
+  "short_name": "Pulse Coach",
+  "description": "Analítica biométrica avanzada estilo COROS EvoLab, coach adaptativo diario y sincronización multideporte.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1120",
+  "theme_color": "#0F172A",
+  "orientation": "portrait",
+  "lang": "es-ES",
+  "categories": ["fitness", "sports", "health"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

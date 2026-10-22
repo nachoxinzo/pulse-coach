@@ -17,9 +17,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       return NextResponse.json(
-        { success: false, error: 'La contraseña debe contener al menos 6 caracteres.' },
+        { success: false, error: 'La contraseña debe contener al menos 8 caracteres para garantizar la seguridad.' },
         { status: 400 }
       );
     }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Error en registro:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Error interno al crear la cuenta.' },
+      { success: false, error: 'Ocurrió un error al procesar el registro. Inténtalo de nuevo más tarde.' },
       { status: 500 }
     );
   }

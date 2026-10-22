@@ -29,6 +29,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { getSportVisual } from './ActivityFeed';
+import { PerformanceChart } from './PerformanceChart';
+import { RacePredictor } from './RacePredictor';
 
 interface CorosDashboardProps {
   metrics: BiometricMetrics;
@@ -217,6 +219,11 @@ export function CorosDashboard({
         </div>
 
       </div>
+
+      {/* ============================================================== */}
+      {/* 2.5. GRÁFICA EVOLUTIVA EVOLAB (PERFORMANCE MANAGEMENT CHART - PMC) */}
+      {/* ============================================================== */}
+      <PerformanceChart activities={activities as any} currentVo2Max={metrics.vo2Max} />
 
       {/* ============================================================== */}
       {/* 3. DOS COLUMNAS: ÚLTIMA ACTIVIDAD + BIOMETRÍA DE SALUD */}
@@ -456,6 +463,11 @@ export function CorosDashboard({
         </div>
 
       </div>
+
+      {/* ============================================================== */}
+      {/* 4. PREDICTOR DE TIEMPOS DE CARRERA (EVOLAB RACE PREDICTOR) */}
+      {/* ============================================================== */}
+      <RacePredictor vo2Max={metrics.vo2Max} />
 
     </div>
   );
