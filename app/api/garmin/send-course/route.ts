@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import path from 'path';
-import { GarminClient, Garmin, FileTokenStore } from 'garminconnect-js';
+import { getGarminClient } from '@/lib/garmin-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,13 +15,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ruta de los tokens guardados
-    const tokensPath = path.join(process.cwd(), 'tokens');
-    const tokenStore = new FileTokenStore(tokensPath);
-    const client = new GarminClient({ tokenStore });
-    const hasTokens = await client.loadTokens();
+    // Obtener cliente conectado (desde env en Vercel o desde tokens locales)
+    const garmin = await getGarminClient();
 
-    if (!hasTokens) {
+    if (!garmin) {
       return NextResponse.json(
         { 
           success: false, 
@@ -31,8 +27,6 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-
-    const garmin = new Garmin(client);
 
     // Mapeo de deporte para Garmin: 1 = Running, 2 = Ciclismo/MTB, 3 = Senderismo/Trail
     let activityTypeId = 1;

@@ -10,32 +10,58 @@ import { ActivitySession, BiometricMetrics, SportType } from '@/types';
  */
 export async function getGarminClient(): Promise<Garmin | null> {
   try {
-    // 1. Intentar desde variable de entorno (para Vercel)
-    if (process.env.GARMIN_TOKENS_JSON) {
+    // 1. Intentar desde variable de entorno (para Vercel en la nube)
+    const envTokens = process.env.GARMIN_TOKENS_JSON;
+    if (envTokens) {
       try {
-        const tokens = JSON.parse(process.env.GARMIN_TOKENS_JSON);
-        const client = new GarminClient();
-        client.setTokens(tokens);
-        return new Garmin(client);
-      } catch (e) {
-        console.warn('Error leyendo GARMIN_TOKENS_JSON:', e);
+        let clean = envTokens.trim();
+        // Quitar posibles comillas simples o dobles envolventes añadidas por Vercel
+        if ((clean.startsWith("'") && clean.endsWith("'")) || (clean.startsWith('"') && clean.endsWith('"'))) {
+          clean = clean.slice(1, -1).trim();
+        }
+        
+        // Si viene en base64
+        let parsed: any;
+        if (!clean.startsWith('{')) {
+          try {
+            const decoded = Buffer.from(clean, 'base64').toString('utf8');
+            parsed = JSON.parse(decoded);
+          } catch {
+            parsed = JSON.parse(clean);
+          }
+        } else {
+          parsed = JSON.parse(clean);
+        }
+
+        // Si parsed tiene { oauth1, oauth2 }
+        if (parsed && (parsed.oauth1 || parsed.oauth2)) {
+          const client = new GarminClient();
+          client.setTokens(parsed);
+          return new Garmin(client);
+        }
+      } catch (e: any) {
+        console.error('Error parseando GARMIN_TOKENS_JSON en servidor:', e.message);
       }
     }
 
-    // 2. Intentar desde archivos locales (desarrollo local)
+    // 2. Intentar desde archivos locales (desarrollo local en máquina del usuario)
     const tokensPath = path.join(process.cwd(), 'tokens');
     if (fs.existsSync(tokensPath)) {
-      const tokenStore = new FileTokenStore(tokensPath);
-      const client = new GarminClient({ tokenStore });
-      const loaded = await client.loadTokens();
-      if (loaded) {
-        return new Garmin(client);
+      try {
+        const tokenStore = new FileTokenStore(tokensPath);
+        const client = new GarminClient({ tokenStore });
+        const loaded = await client.loadTokens();
+        if (loaded) {
+          return new Garmin(client);
+        }
+      } catch (e: any) {
+        console.warn('Aviso cargando tokens locales:', e.message);
       }
     }
 
     return null;
-  } catch (err) {
-    console.warn('No se pudo inicializar el cliente de Garmin Connect:', err);
+  } catch (err: any) {
+    console.error('No se pudo inicializar el cliente de Garmin Connect:', err.message);
     return null;
   }
 }
