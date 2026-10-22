@@ -14,8 +14,46 @@ export async function GET() {
   await initDb();
   const user = await getCurrentUser();
 
-  // Si no hay sesión iniciada, devolvemos datos locales iniciales
+  // Si no hay sesión iniciada pero disponemos de sesión activa de Garmin, cargamos las reales
   if (!user) {
+    try {
+      const { getGarminClient } = await import('@/lib/garmin-sync');
+      const garmin = await getGarminClient();
+      if (garmin) {
+        const rawActivities = await garmin.getActivities(0, 15);
+        if (rawActivities && rawActivities.length > 0) {
+          const realActs = rawActivities.map((a: any) => {
+            const key = (a.activityType?.typeKey || '').toLowerCase();
+            const sport = key.includes('bike') ? 'cycling' : key.includes('hike') ? 'trail' : 'running';
+            return {
+              id: `garmin-${a.activityId}`,
+              source: 'garmin' as const,
+              sport: sport as any,
+              title: a.activityName || 'Entrenamiento Garmin',
+              date: a.startTimeLocal ? a.startTimeLocal.slice(0, 16).replace('T', ' ') : 'Reciente',
+              durationMin: Math.round((a.duration || 0) / 60),
+              distanceKm: a.distance ? Number((a.distance / 1000).toFixed(2)) : undefined,
+              avgHr: a.averageHR || 135,
+              maxHr: a.maxHR || 165,
+              calories: a.calories || 0,
+              elevationGainM: a.elevationGain ? Math.round(a.elevationGain) : undefined,
+              avgPaceOrSpeed: a.averageSpeed ? `${(a.averageSpeed * 3.6).toFixed(1)} km/h` : undefined,
+            };
+          });
+
+          return NextResponse.json({
+            authenticated: false,
+            user: null,
+            metrics: INITIAL_BIOMETRICS,
+            activities: realActs,
+            habit: INITIAL_NON_ZERO_HABIT,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Error leyendo actividades Garmin para vista por defecto:', e);
+    }
+
     return NextResponse.json({
       authenticated: false,
       user: null,
