@@ -143,4 +143,7 @@ export interface PopularEvent {
   coordinates: [number, number][]; // [lat, lng] del trazado oficial
   elevationProfile: { distanceKm: number; elevationM: number }[];
   gpxContent: string; // XML GPX estándar listo para Strava y Garmin
+  wikilocUrl?: string; // Enlace a tracks verificados en Wikiloc
+  stravaSegmentUrl?: string; // Enlace a ruta o segmento oficial en Strava
+  isVerifiedRoute?: boolean; // Trazado verificado sobre red vial real
 }

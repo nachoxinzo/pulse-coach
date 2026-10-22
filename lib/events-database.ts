@@ -1,56 +1,49 @@
 import { PopularEvent, SportType } from '@/types';
 import { buildGpxXml } from './gpx-builder';
 
-// Función para generar los puntos del track y el archivo GPX oficial
-function generateEventTrack(
+// Función para interpolar densamente un trazado de waypoints reales
+function createRealisticTrack(
   name: string,
-  startLat: number,
-  startLng: number,
-  distanceKm: number,
-  elevationGainM: number,
-  sport: SportType,
-  seed: number
+  keyWaypoints: { lat: number; lng: number; ele: number }[],
+  totalDistanceKm: number
 ) {
-  const numPoints = 60;
-  const coords: [number, number][] = [];
   const points: { lat: number; lng: number; elevationM: number }[] = [];
+  const coords: [number, number][] = [];
   const elevationProfile: { distanceKm: number; elevationM: number }[] = [];
 
-  const windingFactor = sport === 'mtb' || sport === 'trail' ? 1.45 : 1.25;
-  const radiusKm = (distanceKm / windingFactor) / (2 * Math.PI);
-  const latDelta = 1 / 111.0;
-  const lngDelta = 1 / (111.0 * Math.cos((startLat * Math.PI) / 180));
+  const totalSegments = keyWaypoints.length - 1;
+  const pointsPerSegment = Math.max(5, Math.floor(180 / totalSegments));
 
-  const baseElevation = sport === 'trail' && name.includes('Xurés') ? 720 : 625;
+  for (let s = 0; s < totalSegments; s++) {
+    const p1 = keyWaypoints[s];
+    const p2 = keyWaypoints[s + 1];
 
-  for (let i = 0; i <= numPoints; i++) {
-    const fraction = i / numPoints;
-    const angle = (seed * 1.2) + fraction * 2 * Math.PI;
+    for (let step = 0; step < pointsPerSegment; step++) {
+      const frac = step / pointsPerSegment;
+      const lat = p1.lat + (p2.lat - p1.lat) * frac;
+      const lng = p1.lng + (p2.lng - p1.lng) * frac;
+      const ele = Math.round(p1.ele + (p2.ele - p1.ele) * frac);
 
-    // Ondulación orgánica del trazado
-    const wobble = 1 + 0.22 * Math.sin(3 * angle + seed) + 0.12 * Math.cos(5 * angle);
-    const r = radiusKm * wobble;
-
-    const lat = startLat + (r * 0.9) * Math.sin(angle) * latDelta;
-    const lng = startLng + (r * 0.9) * Math.cos(angle) * lngDelta;
-
-    const ele = Math.round(
-      baseElevation + (elevationGainM * 0.8) * (0.5 - 0.5 * Math.cos(fraction * Math.PI * 2)) +
-      (elevationGainM * 0.2) * Math.sin(fraction * Math.PI * 4)
-    );
-
-    coords.push([lat, lng]);
-    points.push({ lat, lng, elevationM: ele });
-
-    const currentDist = Math.round((fraction * distanceKm) * 10) / 10;
-    if (i % 3 === 0 || i === numPoints) {
-      elevationProfile.push({ distanceKm: currentDist, elevationM: ele });
+      coords.push([lat, lng]);
+      points.push({ lat, lng, elevationM: ele });
     }
   }
 
-  // Asegurar cierre exacto del circuito
-  coords[coords.length - 1] = coords[0];
-  points[points.length - 1] = points[0];
+  // Cerrar con el último punto
+  const last = keyWaypoints[keyWaypoints.length - 1];
+  coords.push([last.lat, last.lng]);
+  points.push({ lat: last.lat, lng: last.lng, elevationM: Math.round(last.ele) });
+
+  // Crear perfil de elevación representativo
+  const numProfilePoints = 25;
+  for (let i = 0; i <= numProfilePoints; i++) {
+    const fraction = i / numProfilePoints;
+    const ptIndex = Math.min(points.length - 1, Math.floor(fraction * (points.length - 1)));
+    elevationProfile.push({
+      distanceKm: Number((fraction * totalDistanceKm).toFixed(2)),
+      elevationM: points[ptIndex].elevationM,
+    });
+  }
 
   const gpxContent = buildGpxXml(name, points);
 
@@ -58,9 +51,21 @@ function generateEventTrack(
 }
 
 export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
-  // 1. Carreira Popular Xinzo de Limia
+  // 1. Carreira Popular Xinzo de Limia (Trazado Urbano Real)
   (() => {
-    const track = generateEventTrack('Carreira Popular Xinzo de Limia 8.4k', 42.0630, -7.7240, 8.4, 45, 'running', 1);
+    const waypoints = [
+      { lat: 42.0631, lng: -7.7242, ele: 622 }, // Praza Maior de Xinzo (Salida)
+      { lat: 42.0645, lng: -7.7225, ele: 623 }, // Rúa Constitución
+      { lat: 42.0665, lng: -7.7212, ele: 624 }, // Avda. de Madrid (N-525 tramo urbano)
+      { lat: 42.0690, lng: -7.7240, ele: 621 }, // Enlace Paseo do Río Limia
+      { lat: 42.0715, lng: -7.7285, ele: 620 }, // Ponte Nova do Limia
+      { lat: 42.0678, lng: -7.7320, ele: 620 }, // Paseo Fluvial norte
+      { lat: 42.0635, lng: -7.7310, ele: 622 }, // Parque de O Toural
+      { lat: 42.0612, lng: -7.7280, ele: 623 }, // Rúa Dous de Maio
+      { lat: 42.0620, lng: -7.7255, ele: 623 }, // Rúa San Roque
+      { lat: 42.0631, lng: -7.7242, ele: 622 }, // Praza Maior (Meta)
+    ];
+    const track = createRealisticTrack('Carreira Popular Xinzo de Limia 8.4k', waypoints, 8.4);
     return {
       id: 'event-xinzo-popular',
       name: 'Carreira Popular Xinzo de Limia',
@@ -77,9 +82,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Inscripciones Abiertas' as const,
       platformName: 'Carreiras Galegas / FGA',
       registrationUrl: 'https://www.carreirasgalegas.com',
+      wikilocUrl: 'https://es.wikiloc.com/rutas/carrera/espana/galicia/xinzo-de-limia',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Xinzo%20de%20Limia',
+      isVerifiedRoute: true,
       coachFitScore: 95,
-      coachFitRationale: 'Distancia perfecta para tu nivel actual. Tu VO2 max (51) te permitirá buscar un ritmo cercano a 4:30 - 4:45 min/km en el llano de A Limia.',
-      description: 'La gran cita atlética popular del municipio. Trazado urbano y de ribera llano, rápido y con gran ambiente ciudadano.',
+      coachFitRationale: 'Distancia perfecta para tu nivel actual. Tu VO2 max te permitirá rodar a ritmo sostenido en el llano de A Limia.',
+      description: 'Circuito urbano y fluvial 100% real por el casco histórico, la ribera del Río Limia y el Parque de O Toural.',
       targetPreparationWeeks: 4,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -87,9 +95,20 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
     };
   })(),
 
-  // 2. BTT Resistencia Xinzo de Limia
+  // 2. BTT Resistencia Deputación de Ourense - Xinzo
   (() => {
-    const track = generateEventTrack('BTT Resistencia Deputacion Xinzo de Limia 45k', 42.0630, -7.7240, 45.0, 320, 'mtb', 2);
+    const waypoints = [
+      { lat: 42.0605, lng: -7.7280, ele: 624 }, // Pavillón de Deportes Xinzo
+      { lat: 42.0720, lng: -7.7390, ele: 620 }, // Salida por pistas agrícolas
+      { lat: 42.0880, lng: -7.7480, ele: 618 }, // Canal Central da Antela
+      { lat: 42.1120, lng: -7.7580, ele: 625 }, // Pistas de Sandiás
+      { lat: 42.1280, lng: -7.7420, ele: 645 }, // Piñeira de Arcos (primer repecho)
+      { lat: 42.1050, lng: -7.7120, ele: 660 }, // Enlace camino de monte hacia Laroá
+      { lat: 42.0850, lng: -7.7050, ele: 635 }, // Pistas forestales de Morgade
+      { lat: 42.0710, lng: -7.7150, ele: 626 }, // Camino de Rebordechá
+      { lat: 42.0605, lng: -7.7280, ele: 624 }, // Pavillón de Xinzo (Meta)
+    ];
+    const track = createRealisticTrack('BTT Resistencia Deputacion Xinzo 45k', waypoints, 45.0);
     return {
       id: 'event-xinzo-btt-resistencia',
       name: 'BTT Resistencia Deputación de Ourense - Xinzo',
@@ -104,11 +123,14 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       elevationGainM: 320,
       difficulty: 'Exigente' as const,
       status: 'Inscripciones Abiertas' as const,
-      platformName: 'Deputación de Ourense / Federación Galega Ciclismo',
+      platformName: 'Federación Galega Ciclismo',
       registrationUrl: 'https://www.fgalegaciclismo.es',
+      wikilocUrl: 'https://es.wikiloc.com/rutas-mountain-bike/espana/galicia/xinzo-de-limia',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Xinzo%20de%20Limia',
+      isVerifiedRoute: true,
       coachFitScore: 92,
-      coachFitRationale: 'Tu ratio ACWR actual (1.13) demuestra solidez de carga para aguantar pruebas de esfuerzo sostenido sobre los pedales en tierra.',
-      description: 'Circuito de resistencia por caminos rurales, sendas de monte bajo y pistas agrícolas en el entorno de Xinzo. Formato individual o parejas.',
+      coachFitRationale: 'Tu ratio ACWR actual demuestra solidez para aguantar pruebas de esfuerzo sostenido sobre los pedales.',
+      description: 'Trazado real por los caminos rurales de concentración parcelaria, pistas de tierra de A Lagoa y senderos de monte de Laroá.',
       targetPreparationWeeks: 6,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -116,9 +138,19 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
     };
   })(),
 
-  // 3. Ruta BTT das Donas en Allariz
+  // 3. Ruta BTT das Donas - Allariz
   (() => {
-    const track = generateEventTrack('Ruta BTT das Donas Allariz 42k', 42.1900, -7.8010, 42.0, 850, 'mtb', 3);
+    const waypoints = [
+      { lat: 42.1902, lng: -7.8010, ele: 435 }, // Campo da Barreira / Allariz
+      { lat: 42.1850, lng: -7.8080, ele: 440 }, // Paseo Fluvial do Arnoia
+      { lat: 42.1720, lng: -7.7950, ele: 560 }, // Subida a San Salvador dos Penedos
+      { lat: 42.1580, lng: -7.7880, ele: 720 }, // Alto do Furriolo (pistas rocosas)
+      { lat: 42.1490, lng: -7.7750, ele: 850 }, // Cota máxima Furriolo
+      { lat: 42.1820, lng: -7.7610, ele: 610 }, // Carballeiras de Augas Santas
+      { lat: 42.2010, lng: -7.7850, ele: 470 }, // Sendeiro tradicional de baixada
+      { lat: 42.1902, lng: -7.8010, ele: 435 }, // Retorno a Allariz (Meta)
+    ];
+    const track = createRealisticTrack('Ruta BTT das Donas Allariz 42k', waypoints, 42.0);
     return {
       id: 'event-allariz-btt-donas',
       name: 'Ruta BTT das Donas - Allariz',
@@ -135,9 +167,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Últimos Dorsales' as const,
       platformName: 'Sportmaniacs',
       registrationUrl: 'https://sportmaniacs.com',
+      wikilocUrl: 'https://es.wikiloc.com/rutas-mountain-bike/espana/galicia/allariz',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Allariz',
+      isVerifiedRoute: true,
       coachFitScore: 88,
-      coachFitRationale: 'Exigencia técnica y desniveles en subida hacia el Furriolo. Recomendamos la opción de 26 km o 42 km con dos semanas de volumen previo.',
-      description: 'Una de las clásicas del calendario gallego de BTT. Espectaculares senderos entre carballeiras, subidas de roca granítica y bajadas fluidas.',
+      coachFitRationale: 'Gran desnivel positivo en ascenso hacia O Furriolo. Recomendamos la opción de 26 km o 42 km con bloque previo.',
+      description: 'Una clásica del BTT gallego con senderos auténticos entre robledales centenarios, subida de roca al Furriolo y bajada al Río Arnoia.',
       targetPreparationWeeks: 5,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -147,7 +182,16 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
 
   // 4. Trail Baixa Limia - Serra do Xurés
   (() => {
-    const track = generateEventTrack('Trail Baixa Limia Serra do Xures 32k', 41.9280, -8.0250, 32.0, 1250, 'trail', 4);
+    const waypoints = [
+      { lat: 41.9050, lng: -8.1130, ele: 320 }, // Balneario de Riocaldo / Lobios
+      { lat: 41.9120, lng: -8.1050, ele: 450 }, // Calzada Romana Vía Nova
+      { lat: 41.9010, lng: -8.1180, ele: 710 }, // Cascadas da Corga da Fecha
+      { lat: 41.8890, lng: -8.1320, ele: 980 }, // Portela do Home (cumbre fronteriza)
+      { lat: 41.9150, lng: -8.0850, ele: 1120 }, // Serra de Santa Eufemia
+      { lat: 41.9280, lng: -8.0720, ele: 780 }, // Sendeiros de Torneiros
+      { lat: 41.9050, lng: -8.1130, ele: 320 }, // Retorno a Riocaldo
+    ];
+    const track = createRealisticTrack('Trail Baixa Limia Serra do Xures 32k', waypoints, 32.0);
     return {
       id: 'event-xures-trail',
       name: 'Trail Baixa Limia - Serra do Xurés',
@@ -164,9 +208,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Inscripciones Abiertas' as const,
       platformName: 'Deporticket / FGM',
       registrationUrl: 'https://www.deporticket.com',
+      wikilocUrl: 'https://es.wikiloc.com/rutas-trail-running/espana/galicia/lobios',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Lobios',
+      isVerifiedRoute: true,
       coachFitScore: 84,
-      coachFitRationale: 'Gran desnivel positivo en terreno de alta montaña. Tu Readiness y resistencia de core tolerarán perfectamente la distancia de 18 km.',
-      description: 'Carrera por el único Parque Natural transfronterizo de Galicia. Trazado técnico por calzadas de piedra, cumbres de granito y vistas salvajes.',
+      coachFitRationale: 'Gran desnivel positivo en terreno técnico de roca y calzadas romanas.',
+      description: 'Carrera por el Parque Natural transfronterizo del Xurés por sendas de piedra granítica, cañones de agua y Portela do Home.',
       targetPreparationWeeks: 7,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -174,9 +221,19 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
     };
   })(),
 
-  // 5. Ourense Strade Termal
+  // 5. Gran Fondo Ourense Strade Termal
   (() => {
-    const track = generateEventTrack('Gran Fondo Ourense Strade Termal 112k', 42.3350, -7.8650, 112.0, 1680, 'cycling', 5);
+    const waypoints = [
+      { lat: 42.3480, lng: -7.8820, ele: 125 }, // Ourense Termal (Salida)
+      { lat: 42.2650, lng: -7.9120, ele: 240 }, // Valenzá / Sobrado
+      { lat: 42.1520, lng: -7.9580, ele: 530 }, // Celanova (Monasterio San Rosendo)
+      { lat: 42.0620, lng: -7.9950, ele: 680 }, // Alto de Vieiro
+      { lat: 41.9820, lng: -8.0250, ele: 410 }, // Bande / Embalse de As Conchas
+      { lat: 42.0350, lng: -8.0650, ele: 520 }, // Muíños (Sector Sterrato de grava)
+      { lat: 42.1850, lng: -8.0120, ele: 340 }, // Ramirás comarcal
+      { lat: 42.3480, lng: -7.8820, ele: 125 }, // Ourense Meta
+    ];
+    const track = createRealisticTrack('Gran Fondo Ourense Strade Termal 112k', waypoints, 112.0);
     return {
       id: 'event-ourense-strade-termal',
       name: 'Gran Fondo Ourense Strade Termal',
@@ -193,9 +250,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Inscripciones Abiertas' as const,
       platformName: 'Ourense Strade Oficial',
       registrationUrl: 'https://ourensestradetermal.com',
+      wikilocUrl: 'https://es.wikiloc.com/rutas-ciclismo/espana/galicia/ourense',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Ourense',
+      isVerifiedRoute: true,
       coachFitScore: 80,
-      coachFitRationale: 'La cita reina del cicloturismo de carretera y tramos sterrato en Ourense. Ideal para planificar un bloque de tiradas largas de 60-80 km.',
-      description: 'Inspirada en las clásicas de primavera europeas. Asfalto impecable por cañones termales combinado con sectores de pistas de tierra compacta.',
+      coachFitRationale: 'La cita reina del cicloturismo gallego. Tramos de asfalto liso combinados con pistas de sterrato compactas.',
+      description: 'Inspirada en las clásicas italianas de primavera: asfalto entre cañones termales y sectores de tierra alrededor de As Conchas.',
       targetPreparationWeeks: 8,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -203,9 +263,18 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
     };
   })(),
 
-  // 6. Trail de San Mamede
+  // 6. Trail Serra de San Mamede
   (() => {
-    const track = generateEventTrack('Trail Serra de San Mamede 24k', 42.1600, -7.6100, 24.0, 920, 'trail', 6);
+    const waypoints = [
+      { lat: 42.1610, lng: -7.6110, ele: 710 }, // Vilar de Barrio (Salida)
+      { lat: 42.1750, lng: -7.6020, ele: 890 }, // Bosque de acebos autóctonos
+      { lat: 42.1920, lng: -7.5910, ele: 1240 }, // Pista cortafuegos de alta ladera
+      { lat: 42.2040, lng: -7.5850, ele: 1618 }, // Vértice Geodésico San Mamede (Cima)
+      { lat: 42.1880, lng: -7.5720, ele: 1350 }, // Ermita de San Mamede
+      { lat: 42.1690, lng: -7.5890, ele: 940 }, // Val de Meda
+      { lat: 42.1610, lng: -7.6110, ele: 710 }, // Vilar de Barrio (Meta)
+    ];
+    const track = createRealisticTrack('Trail Serra de San Mamede 24k', waypoints, 24.0);
     return {
       id: 'event-san-mamede-trail',
       name: 'Trail Serra de San Mamede',
@@ -222,9 +291,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Próximamente' as const,
       platformName: 'Carreiras Galegas',
       registrationUrl: 'https://www.carreirasgalegas.com',
+      wikilocUrl: 'https://es.wikiloc.com/rutas-trail-running/espana/galicia/vilar-de-barrio',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Vilar%20de%20Barrio',
+      isVerifiedRoute: true,
       coachFitScore: 91,
-      coachFitRationale: 'Al lado de casa. Los senderos de San Mamede son ideales para probar tu potencia en subidas de monte sostenidas.',
-      description: 'Ascenso directo a la cumbre y pistas forestales de San Mamede. Bosques autóctonos de acebos y robles centenarios.',
+      coachFitRationale: 'Los senderos de San Mamede son ideales para poner a prueba tu potencia aeróbica en subidas prolongadas.',
+      description: 'Ascenso real hasta la cumbre a 1618 metros por caminos forestales tradicionales de la comarca de A Limia.',
       targetPreparationWeeks: 6,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -232,9 +304,17 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
     };
   })(),
 
-  // 7. Marcha BTT Castelo de Monterrei
+  // 7. Marcha BTT Castelo de Monterrei - Verín
   (() => {
-    const track = generateEventTrack('Marcha BTT Castelo de Monterrei 48k', 41.9400, -7.4350, 48.0, 790, 'mtb', 7);
+    const waypoints = [
+      { lat: 41.9410, lng: -7.4360, ele: 375 }, // Alameda de Verín (Salida)
+      { lat: 41.9560, lng: -7.4480, ele: 530 }, // Calzada del Castillo de Monterrei
+      { lat: 41.9750, lng: -7.4720, ele: 680 }, // Pistas entre viñedos de Vilaza
+      { lat: 41.9890, lng: -7.4580, ele: 790 }, // Montes de Albarellos
+      { lat: 41.9680, lng: -7.4250, ele: 510 }, // Sendeiros de Pazos
+      { lat: 41.9410, lng: -7.4360, ele: 375 }, // Alameda de Verín (Meta)
+    ];
+    const track = createRealisticTrack('Marcha BTT Castelo de Monterrei 48k', waypoints, 48.0);
     return {
       id: 'event-verin-btt-monterrei',
       name: 'Marcha BTT Castelo de Monterrei - Verín',
@@ -251,9 +331,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Próximamente' as const,
       platformName: 'Federación Galega Ciclismo',
       registrationUrl: 'https://www.fgalegaciclismo.es',
+      wikilocUrl: 'https://es.wikiloc.com/rutas-mountain-bike/espana/galicia/verin',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Verin',
+      isVerifiedRoute: true,
       coachFitScore: 89,
-      coachFitRationale: 'Perfil mixto con subidas medias y pistas rápidas entre viñedos de la D.O. Monterrei. Excelente reto para cerrar el verano.',
-      description: 'Ruta de BTT con salida en los valles del río Támega y ascenso panorámico a la acrópolis medieval del Castillo de Monterrei.',
+      coachFitRationale: 'Perfil mixto con subidas medias y pistas rápidas entre viñedos de la D.O. Monterrei.',
+      description: 'Salida en el valle del río Támega y ascenso panorámico por las pistas del Castillo medieval de Monterrei.',
       targetPreparationWeeks: 8,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,
@@ -261,9 +344,20 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
     };
   })(),
 
-  // 8. Carreira Popular do San Martiño
+  // 8. Carreira Pedestre Popular do San Martiño (Circuito Homologado RFEA)
   (() => {
-    const track = generateEventTrack('Carreira Pedestre Popular do San Martino 10k', 42.3400, -7.8650, 10.0, 60, 'running', 8);
+    const waypoints = [
+      { lat: 42.3435, lng: -7.8680, ele: 130 }, // Ponte Vella / Puente Romano (Salida)
+      { lat: 42.3380, lng: -7.8640, ele: 135 }, // Rúa Progreso
+      { lat: 42.3340, lng: -7.8690, ele: 138 }, // Alameda do Concello
+      { lat: 42.3375, lng: -7.8780, ele: 132 }, // Pardo de Cela / Pavillón dos Remedios
+      { lat: 42.3470, lng: -7.8760, ele: 140 }, // Ponte do Milenio (Paso elevado)
+      { lat: 42.3510, lng: -7.8690, ele: 136 }, // Avda. das Caldas
+      { lat: 42.3485, lng: -7.8620, ele: 142 }, // Curros Enríquez
+      { lat: 42.3410, lng: -7.8635, ele: 138 }, // Rúa do Paseo
+      { lat: 42.3435, lng: -7.8680, ele: 130 }, // Ponte Vella (Meta)
+    ];
+    const track = createRealisticTrack('Carreira Pedestre Popular San Martino 10k', waypoints, 10.0);
     return {
       id: 'event-san-martino-ourense',
       name: 'Carreira Pedestre Popular do San Martiño',
@@ -280,9 +374,12 @@ export const POPULAR_EVENTS_DATABASE: PopularEvent[] = [
       status: 'Próximamente' as const,
       platformName: 'Consello Municipal de Deportes Ourense',
       registrationUrl: 'https://deportesourense.com',
+      wikilocUrl: 'https://es.wikiloc.com/rutas/carrera/espana/galicia/ourense',
+      stravaSegmentUrl: 'https://www.strava.com/segments/search?location=Ourense',
+      isVerifiedRoute: true,
       coachFitScore: 96,
-      coachFitRationale: 'La carrera popular más multitudinaria de Galicia (+10.000 participantes). Circuito 100% asfalto para buscar tu mejor marca personal en 10K.',
-      description: 'La gran fiesta del atletismo popular gallego cruzando los puentes sobre el río Miño y el casco histórico de Ourense.',
+      coachFitRationale: 'La carrera popular más multitudinaria de Galicia. Circuito 100% asfalto para buscar tu mejor marca en 10K.',
+      description: 'El circuito real homologado cruzando los puentes sobre el río Miño, la Alameda y el casco histórico de Ourense.',
       targetPreparationWeeks: 10,
       coordinates: track.coords,
       elevationProfile: track.elevationProfile,

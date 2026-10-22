@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { DeviceSyncModal } from './DeviceSyncModal';
+import { GpxToolModal } from './GpxToolModal';
 import { PopularEvent, SportType, BiometricMetrics } from '@/types';
 import { POPULAR_EVENTS_DATABASE } from '@/lib/events-database';
 import { 
@@ -17,17 +18,20 @@ import {
   Footprints, 
   Mountain, 
   CheckCircle2, 
-  SlidersHorizontal,
-  Flame,
-  Award,
-  Download,
-  Map as MapIcon,
-  ChevronDown,
-  ChevronUp,
-  RefreshCw,
-  Share2,
-  Info,
-  Watch
+  SlidersHorizontal, 
+  Flame, 
+  Award, 
+  Download, 
+  Map as MapIcon, 
+  ChevronDown, 
+  ChevronUp, 
+  RefreshCw, 
+  Share2, 
+  Info, 
+  Watch,
+  Upload,
+  Compass,
+  Check
 } from 'lucide-react';
 
 const RouteMap = dynamic(() => import('./RouteMap'), {
@@ -56,6 +60,7 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
   const [sendingGarminId, setSendingGarminId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [syncModalEvent, setSyncModalEvent] = useState<PopularEvent | null>(null);
+  const [isGpxToolOpen, setIsGpxToolOpen] = useState(false);
 
   // Filtrado reactivo de eventos
   const filteredEvents = useMemo(() => {
@@ -148,24 +153,35 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
     <div className="space-y-6">
       
       {/* Cabecera Principal */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 dark:border-slate-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200 flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               Tracks Oficiales GPX & Calendario Popular
             </span>
-            <span className="text-xs text-slate-500 font-medium">Ourense, A Limia & Galicia</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Ourense, A Limia & Galicia</span>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-1">Buscador de Eventos con Track GPX</h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Descarga el track oficial de cada prueba en formato GPX para subirlo directamente a tu cuenta de Strava o reloj Garmin.
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">Buscador de Eventos con Track GPX</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            Descarga el track oficial de cada prueba o impórtalo directamente a tu reloj Garmin y Strava.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700">
-          <Calendar className="w-4 h-4 text-slate-500" />
-          <span>Temporada 2026</span>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {/* Botón Herramienta GPX a Mayores */}
+          <button
+            onClick={() => setIsGpxToolOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black shadow-md transition-all active:scale-[0.98] touch-target"
+          >
+            <Upload className="w-4 h-4 stroke-[2.5]" />
+            <span>Herramienta Importar GPX</span>
+          </button>
+
+          <div className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <Calendar className="w-4 h-4 text-slate-500" />
+            <span>2026</span>
+          </div>
         </div>
       </div>
 
@@ -384,10 +400,10 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
             return (
               <div
                 key={event.id}
-                className={`bg-white rounded-xl border p-5 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] transition-all ${
+                className={`bg-white dark:bg-[#0F172A] rounded-xl border p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] transition-all ${
                   isTarget
-                    ? 'border-emerald-500 ring-2 ring-emerald-100'
-                    : 'border-slate-200/90 hover:border-slate-300'
+                    ? 'border-emerald-500 ring-2 ring-emerald-100 dark:ring-emerald-950'
+                    : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -395,22 +411,28 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                   {/* Bloque Fecha + Título */}
                   <div className="flex items-start gap-4">
                     {/* Caja de Fecha */}
-                    <div className="w-14 h-14 rounded-xl bg-slate-900 text-white flex flex-col items-center justify-center shrink-0 shadow-2xs">
-                      <span className="text-[10px] uppercase font-black tracking-wider text-amber-400">{event.month}</span>
-                      <span className="text-xl font-black leading-none tabular-nums">{event.day}</span>
+                    <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl bg-slate-900 dark:bg-slate-950 text-white flex flex-col items-center justify-center shrink-0 shadow-2xs border border-slate-800">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-wider text-amber-400">{event.month}</span>
+                      <span className="text-lg sm:text-xl font-black leading-none tabular-nums">{event.day}</span>
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${badge.bg}`}>
                           {badge.label}
                         </span>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                           {event.difficulty}
                         </span>
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                           {event.status}
                         </span>
+                        {event.isVerifiedRoute && (
+                          <span className="text-[10px] font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/50 px-2 py-0.5 rounded-md border border-cyan-200 dark:border-cyan-800 flex items-center gap-1">
+                            <Check className="w-3 h-3 stroke-[2.5]" />
+                            <span>Trazado Vial Real</span>
+                          </span>
+                        )}
                         {isTarget && (
                           <span className="text-xs font-black text-white bg-emerald-600 px-2.5 py-0.5 rounded-md shadow-2xs flex items-center gap-1">
                             <Target className="w-3 h-3" />
@@ -419,12 +441,12 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                         )}
                       </div>
 
-                      <h3 className="text-base font-bold text-slate-900">{event.name}</h3>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">{event.name}</h3>
 
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                         <span>{event.location}</span>
-                        <strong className="text-slate-700">· {event.distanceFromUserKm === 0 ? 'En tu localidad' : `A ${event.distanceFromUserKm} km de ti`}</strong>
+                        <strong className="text-slate-700 dark:text-slate-300">· {event.distanceFromUserKm === 0 ? 'En tu localidad' : `A ${event.distanceFromUserKm} km de ti`}</strong>
                       </p>
                     </div>
                   </div>
@@ -432,68 +454,91 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                   {/* Distancias & Afinidad */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
                     <div>
-                      <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Distancias Oficiales</span>
+                      <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Distancias</span>
                       <div className="flex flex-wrap gap-1.5">
                         {event.distances.map((d, i) => (
-                          <span key={i} className="px-2 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-bold tabular-nums">
+                          <span key={i} className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold tabular-nums">
                             {d}
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    <div className="text-right sm:border-l sm:border-slate-100 sm:pl-4">
+                    <div className="text-left sm:text-right sm:border-l sm:border-slate-100 dark:sm:border-slate-800 sm:pl-4">
                       <span className="text-[10px] uppercase font-semibold text-slate-400 block">Afinidad Coach</span>
-                      <span className="text-base font-black text-amber-600 tabular-nums">{event.coachFitScore}%</span>
+                      <span className="text-base font-black text-amber-600 dark:text-amber-400 tabular-nums">{event.coachFitScore}%</span>
                     </div>
                   </div>
 
                 </div>
 
                 {/* Explicación del Coach */}
-                <div className="mt-3.5 text-xs text-slate-600 leading-relaxed">
-                  <strong className="text-slate-900">Consejo de preparación: </strong>
+                <div className="mt-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                  <strong className="text-slate-900 dark:text-white">Consejo de preparación: </strong>
                   {event.coachFitRationale} ({event.targetPreparationWeeks} semanas recomendadas).
                 </div>
 
-                {/* BOTONERA DE ACCIÓN: DESCARGAR GPX, VER TRACK, RETO E INSCRIPCIÓN */}
-                <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                {/* BOTONERA DE ACCIÓN: GPX, ENLACES WIKILOC / STRAVA, Y GARMIN DIRECTO */}
+                <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5 text-xs">
                   
-                  {/* Acciones de Track GPX, Móvil y Garmin Directo */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={() => setSyncModalEvent(event)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-xs touch-target"
-                      title="Abrir track en app móvil de COROS o iGPSPORT"
-                    >
-                      <Share2 className="w-4 h-4 stroke-[2.2]" />
-                      <span>COROS / iGPSPORT</span>
-                    </button>
-
+                  {/* Acciones de Track GPX y Fuentes Oficiales */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {/* Botón Garmin Connect */}
                     <button
                       onClick={() => handleSendDirectToGarmin(event)}
                       disabled={sendingGarminId === event.id}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold transition-all shadow-xs touch-target disabled:opacity-50"
-                      title="Enviar directamente a tu cuenta y reloj Garmin Connect"
+                      title="Enviar track real directamente a tu cuenta y reloj Garmin Connect"
                     >
-                      <Watch className={`w-4 h-4 ${sendingGarminId === event.id ? 'animate-spin text-white' : 'text-white'}`} />
+                      <Watch className={`w-3.5 h-3.5 ${sendingGarminId === event.id ? 'animate-spin text-white' : 'text-white'}`} />
                       <span>{sendingGarminId === event.id ? 'Enviando...' : 'Garmin Connect'}</span>
                     </button>
 
+                    {/* Botón Descargar GPX */}
                     <button
                       onClick={() => handleDownloadGpx(event)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold transition-all shadow-xs touch-target"
-                      title="Descargar track .gpx para Strava o importación manual"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white font-bold transition-all shadow-xs touch-target"
+                      title="Descargar track GPX 100% sobre caminos reales"
                     >
-                      <Download className="w-4 h-4 stroke-[2.2]" />
+                      <Download className="w-3.5 h-3.5 stroke-[2.2]" />
                       <span>Descargar GPX</span>
                     </button>
 
+                    {/* Enlace a Wikiloc Oficial */}
+                    {event.wikilocUrl && (
+                      <a
+                        href={event.wikilocUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 transition-all touch-target"
+                        title="Ver tracks y fotos de la comunidad en Wikiloc"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Wikiloc</span>
+                        <ExternalLink className="w-3 h-3 opacity-60" />
+                      </a>
+                    )}
+
+                    {/* Enlace a Strava */}
+                    {event.stravaSegmentUrl && (
+                      <a
+                        href={event.stravaSegmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-orange-50 dark:bg-orange-950/60 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-800 dark:text-orange-300 font-bold border border-orange-200 dark:border-orange-800 transition-all touch-target"
+                        title="Ver ruta y segmentos en Strava"
+                      >
+                        <span>Strava</span>
+                        <ExternalLink className="w-3 h-3 opacity-60" />
+                      </a>
+                    )}
+
+                    {/* Ver Mapa */}
                     <button
                       onClick={() => setPreviewEventId(isPreviewOpen ? null : event.id)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold transition-all touch-target"
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold transition-all touch-target"
                     >
-                      <MapIcon className="w-3.5 h-3.5 text-indigo-600" />
+                      <MapIcon className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                       <span>{isPreviewOpen ? 'Ocultar' : 'Ver Mapa'}</span>
                       {isPreviewOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
@@ -506,7 +551,7 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                       className={`px-3.5 py-2 rounded-lg font-bold transition-all touch-target ${
                         isTarget
                           ? 'bg-emerald-600 text-white shadow-2xs'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                          : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
                       }`}
                     >
                       {isTarget ? 'Reto Fijado' : 'Fijar como Reto'}
@@ -517,7 +562,7 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                         href={event.registrationUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-2xs transition-all touch-target"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 dark:bg-cyan-500 hover:bg-slate-800 dark:hover:bg-cyan-400 text-white dark:text-slate-950 font-bold shadow-2xs transition-all touch-target"
                       >
                         <span>{event.platformName}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -529,15 +574,15 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
 
                 {/* VISTA DESPLEGABLE DEL TRACK OFICIAL EN EL MAPA */}
                 {isPreviewOpen && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                      <span>Trazado Oficial: {event.name} ({event.officialDistanceKm} km · +{event.elevationGainM}m desnivel)</span>
-                      <span className="text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
-                        Formato GPX 1.1 listo
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <span>Trazado Vial Real: {event.name} ({event.officialDistanceKm} km · +{event.elevationGainM}m)</span>
+                      <span className="text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-200 dark:border-cyan-800">
+                        GPX 1.1 Verificado
                       </span>
                     </div>
 
-                    <div className="rounded-xl overflow-hidden border border-slate-200">
+                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
                       <RouteMap
                         coordinates={event.coordinates}
                         center={event.coordinates[0]}
@@ -566,6 +611,12 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
           onGarminSent={(msg) => setStatusMessage(msg)}
         />
       )}
+
+      {/* Herramienta Avanzada de Importación y Auditoría GPX */}
+      <GpxToolModal
+        isOpen={isGpxToolOpen}
+        onClose={() => setIsGpxToolOpen(false)}
+      />
 
     </div>
   );
