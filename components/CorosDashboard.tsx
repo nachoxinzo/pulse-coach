@@ -26,7 +26,10 @@ import {
   Footprints, 
   Gauge, 
   Calendar,
-  Sparkles
+  Sparkles,
+  Watch,
+  Upload,
+  Radio
 } from 'lucide-react';
 import { getSportVisual } from './ActivityFeed';
 import { PerformanceChart } from './PerformanceChart';
@@ -37,6 +40,7 @@ interface CorosDashboardProps {
   activities: ActivitySession[];
   habit: NonZeroHabit;
   onNavigateTab: (tab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
+  onOpenSync?: (tab?: 'garmin' | 'coros' | 'igpsport' | 'strava') => void;
 }
 
 export function CorosDashboard({
@@ -44,6 +48,7 @@ export function CorosDashboard({
   activities,
   habit,
   onNavigateTab,
+  onOpenSync,
 }: CorosDashboardProps) {
   // Última actividad real registrada
   const latestActivity = activities.length > 0 ? activities[0] : null;
@@ -145,6 +150,57 @@ export function CorosDashboard({
           </div>
 
         </div>
+
+        {/* Barra Rápida de Sincronización Multi-dispositivo */}
+        <div className="relative z-10 mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-300 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Sincronizar Dispositivo o Actividades:</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Botón COROS */}
+            <button
+              onClick={() => onOpenSync && onOpenSync('coros')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all active:scale-[0.98] touch-target shadow-2xs"
+              title="Sincronizar reloj COROS Pace, Apex o Vertix"
+            >
+              <Watch className="w-4 h-4 text-cyan-400 stroke-[2]" />
+              <span>Sincronizar COROS</span>
+            </button>
+
+            {/* Botón iGPSPORT */}
+            <button
+              onClick={() => onOpenSync && onOpenSync('igpsport')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 border border-orange-500/40 text-xs font-bold transition-all active:scale-[0.98] touch-target shadow-2xs"
+              title="Sincronizar ciclocomputador iGPSPORT (BSC / iGS)"
+            >
+              <Bike className="w-4 h-4 text-orange-400 stroke-[2]" />
+              <span>Sincronizar iGPSPORT</span>
+            </button>
+
+            {/* Botón Garmin Connect */}
+            <button
+              onClick={() => onOpenSync && onOpenSync('garmin')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all active:scale-[0.98] touch-target shadow-2xs"
+              title="Sincronizar con cuenta de Garmin Connect"
+            >
+              <Radio className="w-4 h-4 text-sky-400 stroke-[2]" />
+              <span>Garmin Connect</span>
+            </button>
+
+            {/* Botón Subir Archivo Manual */}
+            <button
+              onClick={() => onOpenSync && onOpenSync('coros')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 text-xs font-semibold transition-all active:scale-[0.98] touch-target"
+              title="Subir archivo de actividad .FIT o .GPX"
+            >
+              <Upload className="w-3.5 h-3.5 text-slate-400" />
+              <span>Subir .FIT / .GPX</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* ============================================================== */}

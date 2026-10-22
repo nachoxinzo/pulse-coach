@@ -26,7 +26,7 @@ interface NavbarProps {
   onSelectTab: (tab: 'dashboard' | 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
   streakDays: number;
   todayCompleted: boolean;
-  onOpenSync: () => void;
+  onOpenSync: (tab?: 'garmin' | 'coros' | 'igpsport' | 'strava') => void;
   currentUser?: UserSessionPayload | null;
   onOpenAuth?: (mode?: 'login' | 'register') => void;
   onLogout?: () => void;
@@ -215,13 +215,14 @@ export function Navbar({
                 <span>{streakDays} <span className="hidden sm:inline">días</span></span>
               </div>
 
-              {/* Botón Sincronizar Cuentas (Desktop) */}
+              {/* Botón Sincronizar Reloj / GPS (Desktop) */}
               <button
-                onClick={onOpenSync}
+                onClick={() => onOpenSync('coros')}
                 className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] touch-target"
+                title="Vincular relojes COROS, Garmin, ciclocomputadores iGPSPORT y Strava"
               >
-                <Watch className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 stroke-[1.75]" />
-                <span>Cuentas</span>
+                <Watch className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 stroke-[1.75]" />
+                <span>Vincular Reloj / GPS</span>
               </button>
 
               {/* Botón Guía / Tutorial (Desktop) */}
@@ -432,16 +433,28 @@ export function Navbar({
                 )
               )}
 
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenSync();
-                }}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-semibold touch-target"
-              >
-                <Watch className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                <span>Configurar Garmin & Strava</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenSync('coros');
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-cyan-200 dark:border-cyan-800/80 bg-cyan-50/50 dark:bg-cyan-950/40 text-cyan-900 dark:text-cyan-300 text-xs font-bold touch-target"
+                >
+                  <Watch className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                  <span>COROS / iGPS</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenSync('garmin');
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-bold touch-target"
+                >
+                  <Watch className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <span>Garmin / Strava</span>
+                </button>
+              </div>
 
               {onOpenTutorial && (
                 <button

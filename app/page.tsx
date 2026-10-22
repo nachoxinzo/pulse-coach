@@ -24,7 +24,13 @@ export default function Home() {
   const [habit, setHabit] = useState<NonZeroHabit>(INITIAL_NON_ZERO_HABIT);
   const [activities, setActivities] = useState<ActivitySession[]>(RECENT_ACTIVITIES);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [syncModalTab, setSyncModalTab] = useState<'garmin' | 'coros' | 'igpsport' | 'strava'>('coros');
   const [activeTargetEvent, setActiveTargetEvent] = useState<PopularEvent | null>(null);
+
+  const handleOpenSync = (tab: 'garmin' | 'coros' | 'igpsport' | 'strava' = 'coros') => {
+    setSyncModalTab(tab);
+    setIsSyncModalOpen(true);
+  };
 
   // Estados de Autenticación, Demo y Tutorial Guiado
   const [currentUser, setCurrentUser] = useState<UserSessionPayload | null>(null);
@@ -156,7 +162,7 @@ export default function Home() {
         onSelectTab={setActiveTab}
         streakDays={habit.currentStreakDays}
         todayCompleted={habit.todayCompleted}
-        onOpenSync={() => setIsSyncModalOpen(true)}
+        onOpenSync={handleOpenSync}
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
@@ -212,6 +218,7 @@ export default function Home() {
                 activities={activities}
                 habit={habit}
                 onNavigateTab={(tab) => setActiveTab(tab)}
+                onOpenSync={handleOpenSync}
               />
             )}
 
@@ -277,6 +284,7 @@ export default function Home() {
       <SyncModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
+        initialTab={syncModalTab}
         onSyncSuccess={() => loadUserData()}
       />
 

@@ -6,6 +6,7 @@ import { DeviceSyncModal } from './DeviceSyncModal';
 import { GpxToolModal } from './GpxToolModal';
 import { PopularEvent, SportType, BiometricMetrics } from '@/types';
 import { POPULAR_EVENTS_DATABASE } from '@/lib/events-database';
+import { shareTrackToDevice } from '@/lib/device-share';
 import { 
   Trophy, 
   Search, 
@@ -137,6 +138,24 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
     setTimeout(() => setStatusMessage(''), 5000);
   };
 
+  // Compartir directamente a app COROS / iGPSPORT o abrir modal guiado
+  const handleShareCorosIgpsport = async (event: PopularEvent) => {
+    // Intentar Web Share directo (abre COROS o iGPSPORT directamente en Android/iOS)
+    const res = await shareTrackToDevice({
+      name: event.name,
+      gpxContent: event.gpxContent,
+      sport: event.sport,
+    });
+
+    if (res.method === 'native_share') {
+      setStatusMessage(res.message);
+      setTimeout(() => setStatusMessage(''), 6000);
+    } else {
+      // En escritorio o si no soporta archivos Web Share, abrir el modal completo
+      setSyncModalEvent(event);
+    }
+  };
+
   const getSportBadge = (sport: SportType) => {
     switch (sport) {
       case 'mtb':
@@ -252,6 +271,15 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                     >
                       <Watch className="w-3.5 h-3.5 text-indigo-400" />
                       <span>{sendingGarminId === event.id ? '...' : 'Garmin'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleShareCorosIgpsport(event)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs"
+                      title="Enviar a reloj COROS o ciclocomputador iGPSPORT"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>COROS / iGPS</span>
                     </button>
 
                     <button
@@ -493,6 +521,16 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                     >
                       <Watch className={`w-3.5 h-3.5 ${sendingGarminId === event.id ? 'animate-spin text-white' : 'text-white'}`} />
                       <span>{sendingGarminId === event.id ? 'Enviando...' : 'Garmin Connect'}</span>
+                    </button>
+
+                    {/* Botón COROS / iGPSPORT */}
+                    <button
+                      onClick={() => handleShareCorosIgpsport(event)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-xs touch-target"
+                      title="Enviar track directamente a tu app de COROS o ciclocomputador iGPSPORT"
+                    >
+                      <Share2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                      <span>COROS / iGPSPORT</span>
                     </button>
 
                     {/* Botón Descargar GPX */}
