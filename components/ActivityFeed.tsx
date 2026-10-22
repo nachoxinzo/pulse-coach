@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { ActivitySession } from '@/types';
 import { ActivityDetailModal } from './ActivityDetailModal';
 import { ActivityComparison } from './ActivityComparison';
+import { PersonalRecords } from './PersonalRecords';
+import { GearTracker } from './GearTracker';
 import { 
   Footprints, 
   Bike, 
@@ -21,7 +23,9 @@ import {
   BarChart3, 
   Sparkles, 
   ChevronRight, 
-  Maximize2 
+  Maximize2,
+  Trophy,
+  Wrench
 } from 'lucide-react';
 
 interface ActivityFeedProps {
@@ -174,13 +178,13 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
 }
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
-  const [activeTab, setActiveTab] = useState<'feed' | 'comparison'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'comparison' | 'records' | 'gear'>('feed');
   const [selectedActivity, setSelectedActivity] = useState<ActivitySession | null>(null);
 
   return (
     <div className="space-y-6">
       
-      {/* Cabecera con Selector de Modo (Historial vs Comparativa Evolutiva) */}
+      {/* Cabecera con Selector de Modo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 dark:border-slate-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -193,15 +197,15 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
             </span>
           </div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">
-            Historial & Comparativa de Rendimiento
+            Historial, Récords & Material
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Analiza todas las métricas de cada entrenamiento o compara salidas para evaluar tu adaptación fisiológica.
+            Analiza todas las métricas de cada entrenamiento, compara salidas, revisa tus PRs y el desgaste de tu equipo.
           </p>
         </div>
 
         {/* Pestañas de Vista */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('feed')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -211,7 +215,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Lista de Sesiones</span>
+            <span>Sesiones</span>
           </button>
 
           <button
@@ -223,7 +227,31 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 stroke-[2]" />
-            <span>Comparar Progreso</span>
+            <span>Comparar</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('records')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'records'
+                ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Récords (PRs)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('gear')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'gear'
+                ? 'bg-emerald-500 text-slate-950 shadow-xs font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Material</span>
           </button>
         </div>
       </div>
@@ -236,7 +264,17 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
         />
       )}
 
-      {/* VISTA 2: LISTA DE ACTIVIDADES CON ANÁLISIS DE TELEMETRÍA */}
+      {/* VISTA 2: VITRINA DE RÉCORDS PERSONALES */}
+      {activeTab === 'records' && (
+        <PersonalRecords />
+      )}
+
+      {/* VISTA 3: GESTOR DE DESGASTE DE MATERIAL */}
+      {activeTab === 'gear' && (
+        <GearTracker />
+      )}
+
+      {/* VISTA 4: LISTA DE ACTIVIDADES CON ANÁLISIS DE TELEMETRÍA */}
       {activeTab === 'feed' && (
         <div className="space-y-3">
           {activities.map((act) => {

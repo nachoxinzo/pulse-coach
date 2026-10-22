@@ -86,15 +86,20 @@ export function ActivityDetailModal({ activity, isOpen, onClose }: ActivityDetai
         {/* ============================================================== */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
           
-          {/* Distancia & Ritmo */}
+          {/* Distancia & Ritmo / GAP */}
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Distancia</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Distancia & Ritmo</span>
             <strong className="text-lg font-black text-slate-900 dark:text-white tabular-nums">
               {activity.distanceKm ? `${activity.distanceKm} km` : `${activity.durationMin} min`}
             </strong>
-            <span className="text-[11px] text-slate-500 block truncate">
-              {activity.avgPaceOrSpeed || 'Ritmo continuo'}
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold truncate">
+                {activity.avgPaceOrSpeed || 'Ritmo continuo'}
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 tabular-nums">
+                {analysis.avgGapPaceStr} GAP
+              </span>
+            </div>
           </div>
 
           {/* Frecuencia Cardíaca */}
@@ -210,21 +215,29 @@ export function ActivityDetailModal({ activity, isOpen, onClose }: ActivityDetai
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-bold text-slate-400">
-                    <th className="py-2 pr-3">Km</th>
-                    <th className="py-2 px-3">Ritmo</th>
-                    <th className="py-2 px-3">FC Media</th>
-                    <th className="py-2 px-3">Desnivel</th>
-                    <th className="py-2 pl-3 text-right">Esfuerzo</th>
+                    <th className="py-2 pr-2">Km</th>
+                    <th className="py-2 px-2">Ritmo Real</th>
+                    <th className="py-2 px-2 text-cyan-600 dark:text-cyan-400">Ritmo GAP</th>
+                    <th className="py-2 px-2">Pendiente</th>
+                    <th className="py-2 px-2">FC Media</th>
+                    <th className="py-2 px-2">Desnivel</th>
+                    <th className="py-2 pl-2 text-right">Esfuerzo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium tabular-nums">
                   {analysis.splits.map((s) => (
                     <tr key={s.km} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="py-2 pr-3 font-bold text-slate-900 dark:text-white">Km {s.km}</td>
-                      <td className="py-2 px-3 font-bold text-cyan-600 dark:text-cyan-400">{s.paceStr}</td>
-                      <td className="py-2 px-3">{s.avgHr} ppm</td>
-                      <td className="py-2 px-3 text-emerald-600 dark:text-emerald-400">+{s.elevationGainM}m</td>
-                      <td className="py-2 pl-3 text-right">
+                      <td className="py-2 pr-2 font-bold text-slate-900 dark:text-white">Km {s.km}</td>
+                      <td className="py-2 px-2 font-medium text-slate-700 dark:text-slate-300">{s.paceStr}</td>
+                      <td className="py-2 px-2 font-bold text-cyan-600 dark:text-cyan-400">
+                        {s.gapPaceStr}
+                      </td>
+                      <td className="py-2 px-2 text-slate-500 text-[11px]">
+                        {s.gradientPct > 0 ? `+${s.gradientPct}%` : `${s.gradientPct}%`}
+                      </td>
+                      <td className="py-2 px-2">{s.avgHr} ppm</td>
+                      <td className="py-2 px-2 text-emerald-600 dark:text-emerald-400">+{s.elevationGainM}m</td>
+                      <td className="py-2 pl-2 text-right">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           s.avgHr < 145 
                             ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' 

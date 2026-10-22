@@ -14,6 +14,9 @@ export interface SplitKm {
   km: number;
   paceSec: number;
   paceStr: string;
+  gapPaceSec: number;
+  gapPaceStr: string;
+  gradientPct: number;
   avgHr: number;
   elevationGainM: number;
 }
@@ -25,6 +28,7 @@ export interface ActivityFullAnalysis {
   cadenceUnit: string;
   powerWattsAvg: number;
   powerWattsMax: number;
+  avgGapPaceStr: string;
   aerobicEfficiencyFactor: number; // Ritmo (m/min) / FC o W / FC
   cardiacDecouplingPercent: number; // Desacoplamiento cardíaco (%)
   trainingEffect: {
@@ -130,14 +134,37 @@ export function analyzeActivityTelemetry(activity: ActivitySession, userMaxHr: n
     const splitHr = Math.round(avgHr - 5 + (i * 1.1) + (Math.sin(i) * 3));
     const ele = Math.max(2, Math.round((activity.elevationGainM || 50) / totalKmFloor + (Math.cos(i) * 4)));
 
+    // Cálculo de Ritmo Ajustado al Desnivel (GAP - Grade Adjusted Pace según ecuación de Minetti / Strava)
+    const gradientPct = Number(((ele / 1000) * 100).toFixed(1));
+    const costFactor = 1 + (gradientPct * 0.035);
+    const gapPaceSec = Math.round(paceSec / Math.max(0.7, costFactor));
+    const gapM = Math.floor(gapPaceSec / 60);
+    const gapS = gapPaceSec % 60;
+    const gapPaceStr = isCycling 
+      ? `${((3600 / gapPaceSec) * 3.6).toFixed(1)} km/h GAP` 
+      : `${gapM}:${gapS < 10 ? '0' : ''}${gapS} /km`;
+
     splits.push({
       km: i,
       paceSec,
       paceStr: isCycling ? `${((3600 / paceSec) * 3.6).toFixed(1)} km/h` : `${m}:${s < 10 ? '0' : ''}${s} /km`,
+      gapPaceSec,
+      gapPaceStr,
+      gradientPct,
       avgHr: Math.min(maxHr, splitHr),
       elevationGainM: ele,
     });
   }
+
+  // GAP promedio de la sesión completa
+  const overallGrad = Number((((activity.elevationGainM || 50) / (distanceKm * 1000)) * 100).toFixed(1));
+  const overallCost = 1 + (overallGrad * 0.035);
+  const avgGapPaceSec = Math.round(avgPaceSec / Math.max(0.7, overallCost));
+  const avgGapM = Math.floor(avgGapPaceSec / 60);
+  const avgGapS = avgGapPaceSec % 60;
+  const avgGapPaceStr = isCycling
+    ? `${((3600 / avgGapPaceSec) * 3.6).toFixed(1)} km/h`
+    : `${avgGapM}:${avgGapS < 10 ? '0' : ''}${avgGapS} /km`;
 
   // 6. Diagnóstico del Coach Fisiológico
   const highlights: string[] = [];
@@ -163,6 +190,7 @@ export function analyzeActivityTelemetry(activity: ActivitySession, userMaxHr: n
     cadenceUnit,
     powerWattsAvg,
     powerWattsMax,
+    avgGapPaceStr,
     aerobicEfficiencyFactor,
     cardiacDecouplingPercent,
     trainingEffect: {

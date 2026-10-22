@@ -33,6 +33,10 @@ import {
 } from 'lucide-react';
 import { getSportVisual } from './ActivityFeed';
 import { PerformanceChart } from './PerformanceChart';
+import { FitnessFreshnessChart } from './FitnessFreshnessChart';
+import { PowerDurationCurve } from './PowerDurationCurve';
+import { PersonalRecords } from './PersonalRecords';
+import { GearTracker } from './GearTracker';
 import { RacePredictor } from './RacePredictor';
 import { ClubLeaderboard } from './ClubLeaderboard';
 import { UserSessionPayload } from '@/lib/auth';
@@ -286,6 +290,11 @@ export function CorosDashboard({
       <PerformanceChart activities={activities as any} currentVo2Max={metrics.vo2Max} />
 
       {/* ============================================================== */}
+      {/* 2.6. ESTADO DE FORMA Y FRESCURA A 3 MESES (STRAVA FITNESS & FRESHNESS) */}
+      {/* ============================================================== */}
+      <FitnessFreshnessChart activities={activities as any} />
+
+      {/* ============================================================== */}
       {/* 3. DOS COLUMNAS: ÚLTIMA ACTIVIDAD + BIOMETRÍA DE SALUD */}
       {/* ============================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -528,6 +537,21 @@ export function CorosDashboard({
       {/* 4. PREDICTOR DE TIEMPOS DE CARRERA (EVOLAB RACE PREDICTOR) */}
       {/* ============================================================== */}
       <RacePredictor vo2Max={metrics.vo2Max} activities={activities} />
+
+      {/* ============================================================== */}
+      {/* 4.5. CURVA DE POTENCIA CRÍTICA & ESTIMADOR DE FTP */}
+      {/* ============================================================== */}
+      <PowerDurationCurve activities={activities as any} />
+
+      {/* ============================================================== */}
+      {/* 4.6. VITRINA DE RÉCORDS PERSONALES (PRs & BEST EFFORTS) */}
+      {/* ============================================================== */}
+      <PersonalRecords />
+
+      {/* ============================================================== */}
+      {/* 4.7. GESTOR DE DESGASTE DE MATERIAL (GEAR TRACKER) */}
+      {/* ============================================================== */}
+      <GearTracker />
 
       {/* ============================================================== */}
       {/* 5. CLUB PULSE COACH & RETOS DE GRUPO */}
