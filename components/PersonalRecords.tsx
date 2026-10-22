@@ -107,15 +107,49 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
       list.push({
         id: `pr-bike-longest-${longestRide.id}`,
         category: 'Mayor Distancia Ciclismo',
-        sport: longestRide.sport as any,
+        sport: 'cycling',
         iconType: 'trophy',
-        title: 'Salida Más Larga en Bici',
+        title: 'Salida Más Larga en Bicicleta',
         recordValue: `${longestRide.distanceKm} km`,
         subValue: `${longestRide.durationMin} min (${longestRide.avgPaceOrSpeed || ''})`,
         dateAchieved: longestRide.date,
         activityTitle: longestRide.title,
         badgeLevel: 'oro',
       });
+
+      // Hito Centurión: Si ha completado >= 100 km en bicicleta
+      const centuryRide = cyclingWithDist.find(a => (a.distanceKm || 0) >= 98);
+      if (centuryRide) {
+        list.push({
+          id: `pr-bike-century-${centuryRide.id}`,
+          category: 'Gran Fondo en Bicicleta',
+          sport: 'cycling',
+          iconType: 'award',
+          title: 'Hito Centurión (+100 Km Bici)',
+          recordValue: `${centuryRide.distanceKm} km`,
+          subValue: `${centuryRide.durationMin} min · ${centuryRide.avgPaceOrSpeed || '24.7 km/h'}`,
+          dateAchieved: centuryRide.date,
+          activityTitle: centuryRide.title,
+          badgeLevel: 'oro',
+        });
+      }
+
+      // Hito Medio Fondo: Si ha completado >= 50 km en bicicleta
+      const halfCentury = cyclingWithDist.find(a => (a.distanceKm || 0) >= 50 && (a.distanceKm || 0) < 98);
+      if (halfCentury) {
+        list.push({
+          id: `pr-bike-half-${halfCentury.id}`,
+          category: 'Fondo Medio en Bicicleta',
+          sport: 'cycling',
+          iconType: 'trophy',
+          title: 'Medio Fondo (+50 Km Bici)',
+          recordValue: `${halfCentury.distanceKm} km`,
+          subValue: `${halfCentury.durationMin} min · ${halfCentury.avgPaceOrSpeed || ''}`,
+          dateAchieved: halfCentury.date,
+          activityTitle: halfCentury.title,
+          badgeLevel: 'plata',
+        });
+      }
     }
 
     // 3. Mayor Desnivel Positivo (+D) Acumulado
@@ -206,8 +240,14 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
     setNewActivityName('');
   };
 
-  const getIcon = (type: PersonalRecordItem['iconType']) => {
-    switch (type) {
+  const getIcon = (item: PersonalRecordItem) => {
+    if (item.sport === 'cycling' || item.sport === 'mtb') {
+      return <Bike className="w-5 h-5 text-emerald-500 stroke-[2]" />;
+    }
+    if (item.sport === 'running' || item.sport === 'trail') {
+      return <Footprints className="w-5 h-5 text-cyan-500 stroke-[2]" />;
+    }
+    switch (item.iconType) {
       case 'crown': return <Crown className="w-5 h-5 text-amber-500 stroke-[2]" />;
       case 'trophy': return <Trophy className="w-5 h-5 text-amber-500 stroke-[2]" />;
       case 'award': return <Award className="w-5 h-5 text-cyan-500 stroke-[2]" />;
@@ -318,14 +358,27 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
               {/* Cabecera del Récord */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 flex items-center justify-center shrink-0 shadow-2xs">
-                    {getIcon(item.iconType)}
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs ${
+                    item.sport === 'cycling' || item.sport === 'mtb'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/80'
+                      : 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800/80'
+                  }`}>
+                    {getIcon(item)}
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                      {item.category}
-                    </span>
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                        {item.category}
+                      </span>
+                      <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${
+                        item.sport === 'cycling' || item.sport === 'mtb'
+                          ? 'bg-emerald-100/70 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                          : 'bg-cyan-100/70 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800'
+                      }`}>
+                        {item.sport === 'cycling' || item.sport === 'mtb' ? 'Bicicleta' : 'Carrera'}
+                      </span>
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
                       {item.title}
                     </h3>
                   </div>

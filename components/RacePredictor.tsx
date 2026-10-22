@@ -2,7 +2,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { ActivitySession } from '@/types';
-import { recalculateRacePredictions, RecalculatedRacePrediction } from '@/lib/telemetry-analysis';
+import { 
+  calculateRacePredictions, 
+  VDotPrediction, 
+  formatSecondsToTime, 
+  formatPace 
+} from '@/lib/race-power-algorithms';
 import { 
   Trophy, 
   Timer, 
@@ -15,7 +20,11 @@ import {
   ShieldCheck, 
   Zap, 
   Award,
-  ChevronRight 
+  ChevronRight,
+  Sliders,
+  Compass,
+  Layers,
+  Info
 } from 'lucide-react';
 
 interface RacePredictorProps {
@@ -24,49 +33,66 @@ interface RacePredictorProps {
 }
 
 export function RacePredictor({ vo2Max = 52, activities = [] }: RacePredictorProps) {
-  const [selectedDistance, setSelectedDistance] = useState<'5k' | '10k' | '21k' | '42k'>('10k');
+  const [selectedDistance, setSelectedDistance] = useState<'1500m' | '5k' | '10k' | '21k' | '42k' | 'custom'>('10k');
+  const [customDistanceInput, setCustomDistanceInput] = useState<string>('8.4');
   const [fatigueFactor, setFatigueFactor] = useState<number>(0); // -3% (óptimo), 0 (base), +3% (fatiga)
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
   const [recalcFeedback, setRecalcFeedback] = useState<string | null>(null);
 
-  // Recálculo dinámico con telemetría real
-  const predictions = useMemo(() => {
-    return recalculateRacePredictions(vo2Max, activities, fatigueFactor);
-  }, [vo2Max, activities, fatigueFactor]);
+  const customKmNum = parseFloat(customDistanceInput) || 8.4;
 
-  const current = predictions[selectedDistance];
+  // Cálculo científico mediante algoritmos VDOT (Daniels & Gilbert) + Riegel-Vickers (2016)
+  const calculation = useMemo(() => {
+    return calculateRacePredictions(vo2Max, activities, customKmNum);
+  }, [vo2Max, activities, customKmNum]);
+
+  const current: VDotPrediction = useMemo(() => {
+    if (selectedDistance === 'custom' && calculation.customPrediction) {
+      return calculation.customPrediction;
+    }
+    const standardKey = selectedDistance === 'custom' ? '10k' : selectedDistance;
+    return calculation.standardPredictions[standardKey] || calculation.standardPredictions['10k'];
+  }, [selectedDistance, calculation]);
+
+  // Aplicar factor de frescura del día (-3%, 0, +3%)
+  const adjustedTimeSec = Math.round(current.timeSec * (1 + fatigueFactor / 100));
+  const adjustedPaceSec = adjustedTimeSec / current.targetDistanceKm;
+  const adjustedTimeFormatted = formatSecondsToTime(adjustedTimeSec);
+  const adjustedPaceFormatted = formatPace(adjustedPaceSec);
+  const speedKmh = ((current.targetDistanceKm / (adjustedTimeSec / 3600))).toFixed(1);
 
   const handleManualRecalculate = () => {
     setIsRecalculating(true);
-    setRecalcFeedback('Analizando ritmos en Z2, frecuencia cardíaca y volumen de tus últimas salidas...');
+    setRecalcFeedback('Calibrando VDOT con ritmos en Z2, frecuencia cardíaca y volumen aeróbico...');
     setTimeout(() => {
       setIsRecalculating(false);
-      setRecalcFeedback(`¡Predicciones recalculadas con éxito! Calibrado con ${activities.length} sesiones recientes de Garmin & Strava.`);
+      setRecalcFeedback(`¡Calibración completada! VDOT actualizado a ${calculation.vdot} con ${activities.length} sesiones analizadas.`);
       setTimeout(() => setRecalcFeedback(null), 5000);
-    }, 1200);
+    }, 1000);
   };
 
-  const speedKmh = ((current.distanceKm / (current.timeSec / 3600))).toFixed(1);
-
   return (
-    <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden space-y-4">
-      {/* Luz ambiental púrpura/cian */}
+    <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden space-y-5">
+      {/* Luz ambiental cian/ámbar */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Cabecera con Recalibrador Dinámico */}
+      {/* Cabecera con Badge de Estudios Científicos */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
         <div>
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-semibold tracking-wider uppercase text-amber-400">
-              EvoLab Race Predictor · Calibración Real
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-black tracking-wider uppercase text-cyan-400 bg-cyan-950/70 border border-cyan-800/80 px-2 py-0.5 rounded-md flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              Algoritmo Daniels & Gilbert (VDOT) + Riegel-Vickers (2016)
+            </span>
+            <span className="text-xs text-slate-400 tabular-nums">
+              VDOT Calibrado: <strong className="text-white">{calculation.vdot}</strong>
             </span>
           </div>
           <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight mt-1">
-            Pronóstico de Tiempos y Ritmos de Competición
+            Predictor de Competición & Ritmos de Carrera
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Recalculado con tu VO2 máx ({vo2Max} ml/kg/min) y los ritmos de tus sesiones registradas.
+            Modelado según consumo de oxígeno, fatiga exponencial por volumen semanal ({calculation.weeklyRunningKm} km) y telemetría real.
           </p>
         </div>
 
@@ -79,7 +105,7 @@ export function RacePredictor({ vo2Max = 52, activities = [] }: RacePredictorPro
             title="Recalcular con las últimas actividades sincronizadas"
           >
             <RefreshCw className={`w-3.5 h-3.5 stroke-[2.5] ${isRecalculating ? 'animate-spin' : ''}`} />
-            <span>{isRecalculating ? 'Recalculando...' : 'Recalcular Telemetría'}</span>
+            <span>{isRecalculating ? 'Calibrando...' : 'Recalcular VDOT'}</span>
           </button>
 
           <div className="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
@@ -97,17 +123,17 @@ export function RacePredictor({ vo2Max = 52, activities = [] }: RacePredictorPro
         </div>
       )}
 
-      {/* Selector de distancia estilo COROS con Tiempos y Deltas de Mejora */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
-        {(['5k', '10k', '21k', '42k'] as const).map((distKey) => {
-          const item = predictions[distKey];
+      {/* Selector de distancia estándar y personalizada */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        {(['1500m', '5k', '10k', '21k', '42k'] as const).map((distKey) => {
+          const item = calculation.standardPredictions[distKey];
           const isSelected = selectedDistance === distKey;
 
           return (
             <button
               key={distKey}
               onClick={() => setSelectedDistance(distKey)}
-              className={`p-3 rounded-xl border transition-all text-left flex flex-col justify-between touch-target ${
+              className={`p-2.5 sm:p-3 rounded-xl border transition-all text-left flex flex-col justify-between touch-target ${
                 isSelected
                   ? 'bg-gradient-to-b from-indigo-950/80 to-slate-900 border-indigo-500/60 shadow-lg shadow-indigo-950/50'
                   : 'bg-slate-900/40 border-slate-800/70 hover:bg-slate-800/50 hover:border-slate-700 text-slate-400'
@@ -115,13 +141,13 @@ export function RacePredictor({ vo2Max = 52, activities = [] }: RacePredictorPro
             >
               <div className="flex items-center justify-between">
                 <span className={`text-xs font-bold ${isSelected ? 'text-indigo-400' : 'text-slate-400'}`}>
-                  {item.distKey.toUpperCase()}
+                  {item.targetDistanceKm === 1.5 ? '1.500 M' : `${item.targetDistanceKm}K`}
                 </span>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800 px-1.5 py-0.5 rounded">
-                  -{item.improvementSec}s
+                <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800 px-1 py-0.2 rounded">
+                  VDOT
                 </span>
               </div>
-              <div className="mt-2">
+              <div className="mt-1.5">
                 <div className={`text-sm sm:text-base font-bold tabular-nums ${isSelected ? 'text-white' : 'text-slate-300'}`}>
                   {item.timeFormatted}
                 </div>
@@ -132,21 +158,69 @@ export function RacePredictor({ vo2Max = 52, activities = [] }: RacePredictorPro
             </button>
           );
         })}
+
+        {/* Botón Distancia Personalizada */}
+        <button
+          onClick={() => setSelectedDistance('custom')}
+          className={`p-2.5 sm:p-3 rounded-xl border transition-all text-left flex flex-col justify-between touch-target ${
+            selectedDistance === 'custom'
+              ? 'bg-gradient-to-b from-indigo-950/80 to-slate-900 border-indigo-500/60 shadow-lg shadow-indigo-950/50'
+              : 'bg-slate-900/40 border-slate-800/70 hover:bg-slate-800/50 hover:border-slate-700 text-slate-400'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-xs font-bold ${selectedDistance === 'custom' ? 'text-indigo-400' : 'text-slate-400'}`}>
+              A MEDIDA
+            </span>
+            <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+          </div>
+          <div className="mt-1.5">
+            <div className={`text-sm sm:text-base font-bold tabular-nums ${selectedDistance === 'custom' ? 'text-white' : 'text-slate-300'}`}>
+              {calculation.customPrediction?.timeFormatted || '00:00'}
+            </div>
+            <div className="text-[11px] text-slate-500 tabular-nums">
+              {customKmNum} km
+            </div>
+          </div>
+        </button>
       </div>
 
-      {/* Tarjeta de Detalle del Objetivo Seleccionado */}
-      <div className="bg-gradient-to-br from-slate-900/90 to-indigo-950/40 border border-indigo-500/20 rounded-xl p-4 sm:p-5">
+      {/* Input de distancia a medida si está seleccionada */}
+      {selectedDistance === 'custom' && (
+        <div className="p-3 rounded-xl bg-slate-900/90 border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-slate-300 font-semibold">Introduce la distancia exacta de tu carrera en kilómetros:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              step="0.1"
+              min="0.5"
+              max="160"
+              value={customDistanceInput}
+              onChange={e => setCustomDistanceInput(e.target.value)}
+              className="w-24 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-white font-bold tabular-nums text-center focus:border-cyan-500 focus:outline-hidden"
+              placeholder="8.4"
+            />
+            <span className="text-slate-400 font-bold">km</span>
+          </div>
+        </div>
+      )}
+
+      {/* Tarjeta de Detalle del Pronóstico Seleccionado */}
+      <div className="bg-gradient-to-br from-slate-900/90 to-indigo-950/40 border border-indigo-500/20 rounded-xl p-4 sm:p-5 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs text-indigo-300 font-semibold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Predicción Detallada: {current.name}</span>
+              <span>Pronóstico Científico: {current.name}</span>
             </div>
             <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight tabular-nums mt-1">
-              {current.timeFormatted}
+              {adjustedTimeFormatted}
             </div>
             <p className="text-xs text-slate-400 mt-1 max-w-lg leading-relaxed">
-              <strong>Estrategia de ritmo: </strong>{current.strategyTip}
+              <strong>Estrategia recomendada: </strong>{current.strategyTip}
             </p>
           </div>
 
@@ -154,34 +228,60 @@ export function RacePredictor({ vo2Max = 52, activities = [] }: RacePredictorPro
             <div>
               <span className="text-[11px] text-slate-400 block">Ritmo Objetivo</span>
               <span className="text-lg font-bold text-cyan-400 tabular-nums">
-                {current.paceFormatted}
+                {adjustedPaceFormatted}
               </span>
-              <span className="text-[10px] text-slate-500 block">min/km</span>
             </div>
 
             <div>
               <span className="text-[11px] text-slate-400 block">Velocidad</span>
               <span className="text-lg font-bold text-amber-400 tabular-nums">
-                {speedKmh}
+                {speedKmh} km/h
               </span>
-              <span className="text-[10px] text-slate-500 block">km/h</span>
             </div>
 
             <div>
-              <span className="text-[11px] text-slate-400 block">Mejora Neta</span>
+              <span className="text-[11px] text-slate-400 block">VDOT Teórico</span>
               <span className="text-lg font-bold text-emerald-400 tabular-nums">
-                -{current.improvementSec}s
+                {formatSecondsToTime(current.vdotTimeSec)}
               </span>
-              <span className="text-[10px] text-slate-500 block">vs mes anterior</span>
             </div>
           </div>
         </div>
 
+        {/* Comparador de Modelos Científicos: Daniels VDOT vs Riegel-Vickers */}
+        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="space-y-0.5">
+            <span className="text-slate-400 text-[11px] font-bold block flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+              Modelo VDOT (Daniels & Gilbert):
+            </span>
+            <span className="text-white font-bold tabular-nums">
+              {formatSecondsToTime(current.vdotTimeSec)} ({formatPace(current.vdotTimeSec / current.targetDistanceKm)})
+            </span>
+            <p className="text-[10px] text-slate-500">
+              Potencial aeróbico puro asumiendo óptima resistencia muscular y economía de carrera.
+            </p>
+          </div>
+
+          <div className="space-y-0.5">
+            <span className="text-slate-400 text-[11px] font-bold block flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+              Modelo Fatiga de Volumen (Vickers & Vertosick 2016):
+            </span>
+            <span className="text-white font-bold tabular-nums">
+              {formatSecondsToTime(current.riegelTimeSec)} ({formatPace(current.riegelTimeSec / current.targetDistanceKm)})
+            </span>
+            <p className="text-[10px] text-slate-500">
+              Ajustado según tus {calculation.weeklyRunningKm} km semanales reales de carrera para evitar fatiga prematura.
+            </p>
+          </div>
+        </div>
+
         {/* Simulador de Frescura / Condición del Día */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2 text-slate-400">
             <Gauge className="w-3.5 h-3.5 text-slate-500" />
-            <span>Condición física del día de la prueba:</span>
+            <span>Condición física / frescura del día de la carrera:</span>
           </div>
           <div className="flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-lg border border-slate-800 self-start sm:self-auto">
             <button
