@@ -220,6 +220,7 @@ export function RouteExplorer({
           sport: route.sport,
           coordinates: route.coordinates,
           elevationProfile: route.elevationProfile,
+          gpxContent: route.gpxContent,
         }),
       });
       const data = await res.json();

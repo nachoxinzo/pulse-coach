@@ -105,6 +105,7 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
           sport: event.sport,
           coordinates: event.coordinates,
           elevationProfile: event.elevationProfile,
+          gpxContent: event.gpxContent,
         }),
       });
       const data = await res.json();

@@ -141,7 +141,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'Distancia perfecta para tu nivel actual. Tu VO2 max te permitirá rodar a ritmo sostenido en el llano de A Limia.',
     description: 'Circuito urbano y fluvial 100% real por el casco histórico, la ribera del Río Limia y el Parque de O Toural.',
     targetPreparationWeeks: 4,
-    dpTolerance: 0.00003,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.727926, lat: 42.060241, ele: 622 }, // Pavillón / Toural
       { lng: -7.731500, lat: 42.058500, ele: 620 }, // Avda Celanova
@@ -179,7 +179,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'Tu ratio ACWR actual demuestra solidez para aguantar pruebas de esfuerzo sostenido sobre los pedales.',
     description: 'Trazado real por los caminos rurales de concentración parcelaria, pistas de tierra de A Lagoa y senderos de monte de Laroá.',
     targetPreparationWeeks: 6,
-    dpTolerance: 0.00005,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.727926, lat: 42.060241, ele: 622 },
       { lng: -7.745000, lat: 42.085000, ele: 618 },
@@ -214,7 +214,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'Gran desnivel positivo en ascenso hacia O Furriolo. Recomendamos la opción de 26 km o 42 km con bloque previo.',
     description: 'Una clásica del BTT gallego con senderos auténticos entre robledales centenarios, subida de roca al Furriolo y bajada al Río Arnoia.',
     targetPreparationWeeks: 5,
-    dpTolerance: 0.00015,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.804504, lat: 42.193056, ele: 435 }, // Allariz Barreira
       { lng: -7.810500, lat: 42.187000, ele: 430 }, // Arnoia
@@ -248,7 +248,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'Gran desnivel positivo en terreno técnico de roca y calzadas romanas.',
     description: 'Carrera por el Parque Natural transfronterizo del Xurés por sendas de piedra granítica, cañones de agua y Portela do Home.',
     targetPreparationWeeks: 7,
-    dpTolerance: 0.0002,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -8.1000, lat: 41.8600, ele: 320 }, // Riocaldo Termas
       { lng: -8.1069, lat: 41.8450, ele: 680 }, // A Corga da Fecha
@@ -280,7 +280,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'La cita reina del cicloturismo gallego. Tramos de asfalto liso combinados con pistas de sterrato compactas.',
     description: 'Inspirada en las clásicas italianas de primavera: asfalto entre cañones termales y sectores de tierra alrededor de As Conchas.',
     targetPreparationWeeks: 8,
-    dpTolerance: 0.0003,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.863912, lat: 42.335747, ele: 125 }, // Ourense
       { lng: -7.875000, lat: 42.315000, ele: 240 }, // Valenzá
@@ -314,7 +314,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'Los senderos de San Mamede son ideales para poner a prueba tu potencia aeróbica en subidas prolongadas.',
     description: 'Ascenso real hasta la cumbre a 1618 metros por caminos forestales tradicionales de la comarca de A Limia.',
     targetPreparationWeeks: 6,
-    dpTolerance: 0.00012,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.560252, lat: 42.176164, ele: 710 },  // Vilar de Barrio
       { lng: -7.535000, lat: 42.195000, ele: 950 },  // Rebordechá
@@ -346,7 +346,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'Perfil mixto con subidas medias y pistas rápidas entre viñedos de la D.O. Monterrei.',
     description: 'Salida en el valle del río Támega y ascenso panorámico por las pistas del Castillo medieval de Monterrei.',
     targetPreparationWeeks: 8,
-    dpTolerance: 0.0001,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.418129, lat: 41.895483, ele: 375 }, // Verín Alameda
       { lng: -7.449315, lat: 41.946980, ele: 530 }, // Castelo de Monterrei
@@ -378,7 +378,7 @@ const EVENTS_CONFIG = [
     coachFitRationale: 'La carrera popular más multitudinaria de Galicia. Circuito 100% asfalto para buscar tu mejor marca en 10K.',
     description: 'El circuito real homologado cruzando los puentes sobre el río Miño, la Alameda y el casco histórico de Ourense.',
     targetPreparationWeeks: 10,
-    dpTolerance: 0.00003,
+    dpTolerance: 0.000005,
     anchors: [
       { lng: -7.8767, lat: 42.3484, ele: 132 }, // Ponte Milenio
       { lng: -7.8741, lat: 42.3524, ele: 136 }, // Jesus Pousa

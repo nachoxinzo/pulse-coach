@@ -88,6 +88,7 @@ export function GpxToolModal({ isOpen, onClose, onTrackLoaded }: GpxToolModalPro
           sport: selectedSport,
           coordinates: parsedTrack.coordinates,
           elevationProfile: parsedTrack.elevationProfile,
+          gpxContent: parsedTrack.rawGpx,
         }),
       });
 

@@ -76,6 +76,7 @@ export function DeviceSyncModal({
           sport,
           coordinates,
           elevationProfile,
+          gpxContent,
         }),
       });
       const data = await res.json();

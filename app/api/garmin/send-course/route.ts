@@ -3,21 +3,45 @@ import { getGarminClient } from '@/lib/garmin-sync';
 
 export const dynamic = 'force-dynamic';
 
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // Radio de la Tierra en metros
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function parseRawPointsFromGpx(gpx: string): { latitude: number; longitude: number; elevation: number }[] {
+  const points: { latitude: number; longitude: number; elevation: number }[] = [];
+  const regex = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)">[\s\S]*?<ele>([^<]+)<\/ele>[\s\S]*?<\/trkpt>/g;
+  let match;
+  while ((match = regex.exec(gpx)) !== null) {
+    points.push({
+      latitude: Number(parseFloat(match[1]).toFixed(6)),
+      longitude: Number(parseFloat(match[2]).toFixed(6)),
+      elevation: Math.round(parseFloat(match[3])),
+    });
+  }
+  return points;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, sport, coordinates, elevationProfile } = body;
+    const { name, sport, coordinates, elevationProfile, gpxContent } = body;
 
-    if (!name || !coordinates || coordinates.length < 2) {
+    if (!name || (!coordinates && !gpxContent)) {
       return NextResponse.json(
-        { success: false, error: 'Datos de ruta incompletos (se requieren al menos 2 puntos).' },
+        { success: false, error: 'Datos de ruta incompletos (se requieren coordenadas o archivo GPX).' },
         { status: 400 }
       );
     }
 
-    // Obtener cliente conectado (desde env en Vercel o desde tokens locales)
     const garmin = await getGarminClient();
-
     if (!garmin) {
       return NextResponse.json(
         { 
@@ -28,39 +52,97 @@ export async function POST(request: Request) {
       );
     }
 
-    // Mapeo de deporte para Garmin: 1 = Running, 2 = Ciclismo/MTB, 3 = Senderismo/Trail
+    // Mapeo de actividad en Garmin Connect: 1 = Running, 2 = Ciclismo/MTB, 3 = Senderismo/Trail
     let activityTypeId = 1;
+    let speedMps = 3.33; // ~5:00 min/km para carrera a pie
     if (sport === 'cycling' || sport === 'mtb') {
       activityTypeId = 2;
-    } else if (sport === 'trail') {
+      speedMps = 5.55; // ~20 km/h para ciclismo
+    } else if (sport === 'trail' || sport === 'hiking') {
       activityTypeId = 3;
+      speedMps = 2.5; // ~15:00 min/km para montaña técnica
     }
 
-    // Mapear coordenadas a geoPoints esperados por Garmin Connect
-    // Para no exceder los límites de payload de Garmin, muestreamos a máx 300 puntos si es muy larga
-    let sampledCoords = coordinates;
-    const maxPoints = 250;
-    if (coordinates.length > maxPoints) {
-      const step = coordinates.length / maxPoints;
-      sampledCoords = [];
-      for (let i = 0; i < maxPoints; i++) {
-        sampledCoords.push(coordinates[Math.floor(i * step)]);
+    const cleanName = name.slice(0, 48);
+
+    // ESTRATEGIA 1: Importación oficial de GPX a través de la API nativa de Garmin Connect
+    if (gpxContent && typeof garmin.createCourseFromGpx === 'function') {
+      try {
+        const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+        const safeFilename = `${cleanName.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}.gpx`;
+        const gpxCourse = await garmin.createCourseFromGpx(blob, safeFilename, {
+          name: cleanName,
+          activityTypeId,
+        });
+
+        if (gpxCourse) {
+          const courseId = (gpxCourse as any)?.courseId || (gpxCourse as any)?.id;
+          const courseUrl = courseId ? `https://connect.garmin.com/modern/course/${courseId}` : undefined;
+          return NextResponse.json({
+            success: true,
+            courseId,
+            courseUrl,
+            message: '¡Trayecto GPX completo importado con éxito en Garmin Connect con altimetría y distancias oficiales!',
+          });
+        }
+      } catch (gpxErr: any) {
+        console.warn('createCourseFromGpx fallback a geoPoints estructurados:', gpxErr.message);
       }
-      sampledCoords.push(coordinates[coordinates.length - 1]);
     }
 
-    const geoPoints = sampledCoords.map((coord: [number, number], idx: number) => {
-      const ele = elevationProfile?.[idx]?.elevationM || 625;
+    // ESTRATEGIA 2: Creación con CourseGeoPoint estructurados con distancia acumulada, altitud y marcas de tiempo
+    let rawPoints: { latitude: number; longitude: number; elevation: number }[] = [];
+    if (gpxContent) {
+      rawPoints = parseRawPointsFromGpx(gpxContent);
+    }
+
+    if (rawPoints.length === 0 && Array.isArray(coordinates)) {
+      rawPoints = coordinates.map((coord: [number, number], idx: number) => {
+        let ele = 620;
+        if (Array.isArray(elevationProfile) && elevationProfile.length > 0) {
+          const profileIdx = Math.min(
+            elevationProfile.length - 1,
+            Math.floor((idx / Math.max(1, coordinates.length - 1)) * (elevationProfile.length - 1))
+          );
+          ele = elevationProfile[profileIdx]?.elevationM || 620;
+        }
+        return {
+          latitude: Number(coord[0].toFixed(6)),
+          longitude: Number(coord[1].toFixed(6)),
+          elevation: ele,
+        };
+      });
+    }
+
+    if (rawPoints.length < 2) {
+      return NextResponse.json(
+        { success: false, error: 'La ruta no contiene suficientes puntos georreferenciados válidos.' },
+        { status: 400 }
+      );
+    }
+
+    // Generar CourseGeoPoint con distancias y marcas temporales continuas
+    const startTimeMs = Date.now();
+    let cumulativeDistMeters = 0;
+
+    const geoPoints = rawPoints.map((pt, idx) => {
+      if (idx > 0) {
+        const prev = rawPoints[idx - 1];
+        cumulativeDistMeters += haversineMeters(prev.latitude, prev.longitude, pt.latitude, pt.longitude);
+      }
+      const elapsedSeconds = Math.round(cumulativeDistMeters / speedMps);
+
       return {
-        latitude: Number(coord[0].toFixed(6)),
-        longitude: Number(coord[1].toFixed(6)),
-        elevation: ele,
+        latitude: pt.latitude,
+        longitude: pt.longitude,
+        elevation: pt.elevation,
+        distance: Number(cumulativeDistMeters.toFixed(1)),
+        timestamp: startTimeMs + elapsedSeconds * 1000,
       };
     });
 
-    // Enviar creación del trayecto a Garmin Connect
     const coursePayload = {
-      name: name.slice(0, 48), // Garmin limita la longitud del nombre
+      name: cleanName,
       activityTypeId,
       geoPoints,
     };
