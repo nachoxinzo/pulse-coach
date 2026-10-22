@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ActivitySession } from '@/types';
+import { ActivityDetailModal } from './ActivityDetailModal';
+import { ActivityComparison } from './ActivityComparison';
 import { 
   Footprints, 
   Bike, 
@@ -12,10 +14,14 @@ import {
   Flame, 
   Heart, 
   Clock, 
-  TrendingUp,
-  Waves,
-  Zap,
-  MapPin
+  TrendingUp, 
+  Waves, 
+  Zap, 
+  MapPin, 
+  BarChart3, 
+  Sparkles, 
+  ChevronRight, 
+  Maximize2 
 } from 'lucide-react';
 
 interface ActivityFeedProps {
@@ -41,11 +47,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Bike,
       label: 'BTT / MTB',
-      badgeBg: 'bg-orange-50',
-      badgeText: 'text-orange-800',
-      badgeBorder: 'border-orange-200',
-      iconBg: 'bg-orange-100/80',
-      iconColor: 'text-orange-700',
+      badgeBg: 'bg-orange-50 dark:bg-orange-950/50',
+      badgeText: 'text-orange-800 dark:text-orange-300',
+      badgeBorder: 'border-orange-200 dark:border-orange-800',
+      iconBg: 'bg-orange-100/80 dark:bg-orange-950/80',
+      iconColor: 'text-orange-700 dark:text-orange-400',
     };
   }
 
@@ -56,11 +62,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Bike,
       label: isGravel ? 'Ciclismo Gravel' : isIndoor ? 'Ciclismo Indoor' : 'Ciclismo en Ruta',
-      badgeBg: 'bg-sky-50',
-      badgeText: 'text-sky-800',
-      badgeBorder: 'border-sky-200',
-      iconBg: 'bg-sky-100/80',
-      iconColor: 'text-sky-700',
+      badgeBg: 'bg-sky-50 dark:bg-sky-950/50',
+      badgeText: 'text-sky-800 dark:text-sky-300',
+      badgeBorder: 'border-sky-200 dark:border-sky-800',
+      iconBg: 'bg-sky-100/80 dark:bg-sky-950/80',
+      iconColor: 'text-sky-700 dark:text-sky-400',
     };
   }
 
@@ -69,11 +75,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Mountain,
       label: 'Senderismo',
-      badgeBg: 'bg-emerald-50',
-      badgeText: 'text-emerald-800',
-      badgeBorder: 'border-emerald-200',
-      iconBg: 'bg-emerald-100/80',
-      iconColor: 'text-emerald-700',
+      badgeBg: 'bg-emerald-50 dark:bg-emerald-950/50',
+      badgeText: 'text-emerald-800 dark:text-emerald-300',
+      badgeBorder: 'border-emerald-200 dark:border-emerald-800',
+      iconBg: 'bg-emerald-100/80 dark:bg-emerald-950/80',
+      iconColor: 'text-emerald-700 dark:text-emerald-400',
     };
   }
 
@@ -82,11 +88,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Mountain,
       label: 'Trail Running',
-      badgeBg: 'bg-teal-50',
-      badgeText: 'text-teal-800',
-      badgeBorder: 'border-teal-200',
-      iconBg: 'bg-teal-100/80',
-      iconColor: 'text-teal-700',
+      badgeBg: 'bg-teal-50 dark:bg-teal-950/50',
+      badgeText: 'text-teal-800 dark:text-teal-300',
+      badgeBorder: 'border-teal-200 dark:border-teal-800',
+      iconBg: 'bg-teal-100/80 dark:bg-teal-950/80',
+      iconColor: 'text-teal-700 dark:text-teal-400',
     };
   }
 
@@ -95,11 +101,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Footprints,
       label: 'Running',
-      badgeBg: 'bg-indigo-50',
-      badgeText: 'text-indigo-800',
-      badgeBorder: 'border-indigo-200',
-      iconBg: 'bg-indigo-100/80',
-      iconColor: 'text-indigo-700',
+      badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
+      badgeText: 'text-indigo-800 dark:text-indigo-300',
+      badgeBorder: 'border-indigo-200 dark:border-indigo-800',
+      iconBg: 'bg-indigo-100/80 dark:bg-indigo-950/80',
+      iconColor: 'text-indigo-700 dark:text-indigo-400',
     };
   }
 
@@ -108,11 +114,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Footprints,
       label: 'Caminata',
-      badgeBg: 'bg-slate-100',
-      badgeText: 'text-slate-800',
-      badgeBorder: 'border-slate-200',
-      iconBg: 'bg-slate-200/80',
-      iconColor: 'text-slate-700',
+      badgeBg: 'bg-slate-100 dark:bg-slate-800',
+      badgeText: 'text-slate-800 dark:text-slate-200',
+      badgeBorder: 'border-slate-200 dark:border-slate-700',
+      iconBg: 'bg-slate-200/80 dark:bg-slate-800/80',
+      iconColor: 'text-slate-700 dark:text-slate-300',
     };
   }
 
@@ -121,11 +127,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Waves,
       label: 'Natación',
-      badgeBg: 'bg-cyan-50',
-      badgeText: 'text-cyan-800',
-      badgeBorder: 'border-cyan-200',
-      iconBg: 'bg-cyan-100/80',
-      iconColor: 'text-cyan-700',
+      badgeBg: 'bg-cyan-50 dark:bg-cyan-950/50',
+      badgeText: 'text-cyan-800 dark:text-cyan-300',
+      badgeBorder: 'border-cyan-200 dark:border-cyan-800',
+      iconBg: 'bg-cyan-100/80 dark:bg-cyan-950/80',
+      iconColor: 'text-cyan-700 dark:text-cyan-400',
     };
   }
 
@@ -134,11 +140,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Dumbbell,
       label: 'Fuerza / Gimnasio',
-      badgeBg: 'bg-purple-50',
-      badgeText: 'text-purple-800',
-      badgeBorder: 'border-purple-200',
-      iconBg: 'bg-purple-100/80',
-      iconColor: 'text-purple-700',
+      badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
+      badgeText: 'text-purple-800 dark:text-purple-300',
+      badgeBorder: 'border-purple-200 dark:border-purple-800',
+      iconBg: 'bg-purple-100/80 dark:bg-purple-950/80',
+      iconColor: 'text-purple-700 dark:text-purple-400',
     };
   }
 
@@ -147,11 +153,11 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
     return {
       icon: Zap,
       label: 'Cardio & Fitness',
-      badgeBg: 'bg-amber-50',
-      badgeText: 'text-amber-800',
-      badgeBorder: 'border-amber-200',
-      iconBg: 'bg-amber-100/80',
-      iconColor: 'text-amber-700',
+      badgeBg: 'bg-amber-50 dark:bg-amber-950/50',
+      badgeText: 'text-amber-800 dark:text-amber-300',
+      badgeBorder: 'border-amber-200 dark:border-amber-800',
+      iconBg: 'bg-amber-100/80 dark:bg-amber-950/80',
+      iconColor: 'text-amber-700 dark:text-amber-400',
     };
   }
 
@@ -159,113 +165,192 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
   return {
     icon: Activity,
     label: 'Actividad',
-    badgeBg: 'bg-slate-100',
-    badgeText: 'text-slate-800',
-    badgeBorder: 'border-slate-200',
-    iconBg: 'bg-slate-200/80',
-    iconColor: 'text-slate-700',
+    badgeBg: 'bg-slate-100 dark:bg-slate-800',
+    badgeText: 'text-slate-800 dark:text-slate-200',
+    badgeBorder: 'border-slate-200 dark:border-slate-700',
+    iconBg: 'bg-slate-200/80 dark:bg-slate-800/80',
+    iconColor: 'text-slate-700 dark:text-slate-300',
   };
 }
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
+  const [activeTab, setActiveTab] = useState<'feed' | 'comparison'>('feed');
+  const [selectedActivity, setSelectedActivity] = useState<ActivitySession | null>(null);
+
   return (
     <div className="space-y-6">
       
-      {/* Cabecera */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/90 dark:border-slate-800 pb-4">
+      {/* Cabecera con Selector de Modo (Historial vs Comparativa Evolutiva) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 dark:border-slate-800 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Historial de Actividades</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 px-2.5 py-0.5 rounded-md border border-cyan-200 dark:border-cyan-800 flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5" />
+              Auditoría & Análisis de Telemetría
+            </span>
+            <span className="text-xs text-slate-500 tabular-nums">
+              {activities.length} sesiones registradas
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">
+            Historial & Comparativa de Rendimiento
+          </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Registro cronológico sincronizado de entrenamientos y salidas de Garmin Connect y Strava.
+            Analiza todas las métricas de cada entrenamiento o compara salidas para evaluar tu adaptación fisiológica.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
-            {activities.length} sesiones registradas
-          </span>
+
+        {/* Pestañas de Vista */}
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+          <button
+            onClick={() => setActiveTab('feed')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'feed'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Lista de Sesiones</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('comparison')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'comparison'
+                ? 'bg-cyan-500 text-slate-950 shadow-xs font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Comparar Progreso</span>
+          </button>
         </div>
       </div>
 
-      {/* Lista de Actividades */}
-      <div className="space-y-3">
-        {activities.map((act) => {
-          const visual = getSportVisual(act.sport, act.title);
-          const SportIcon = visual.icon;
-          const isGarmin = act.source === 'garmin';
+      {/* VISTA 1: COMPARADOR EVOLUTIVO */}
+      {activeTab === 'comparison' && (
+        <ActivityComparison
+          activities={activities}
+          onSelectActivity={(act) => setSelectedActivity(act)}
+        />
+      )}
 
-          return (
-            <div 
-              key={act.id}
-              className="bg-white dark:bg-[#0F172A] rounded-xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                
-                {/* Deporte + Icono + Título + Badges */}
-                <div className="flex items-start gap-3.5">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${visual.iconBg} ${visual.iconColor}`}>
-                    <SportIcon className="w-5 h-5 stroke-[2]" />
+      {/* VISTA 2: LISTA DE ACTIVIDADES CON ANÁLISIS DE TELEMETRÍA */}
+      {activeTab === 'feed' && (
+        <div className="space-y-3">
+          {activities.map((act) => {
+            const visual = getSportVisual(act.sport, act.title);
+            const SportIcon = visual.icon;
+            const isGarmin = act.source === 'garmin';
+
+            return (
+              <div 
+                key={act.id}
+                onClick={() => setSelectedActivity(act)}
+                className="bg-white dark:bg-[#0F172A] rounded-xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] hover:border-cyan-500/50 hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  
+                  {/* Bloque Izquierdo: Icono + Título + Badges */}
+                  <div className="flex items-start gap-3.5">
+                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${visual.iconBg} ${visual.iconColor} group-hover:scale-105 transition-transform`}>
+                      <SportIcon className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${visual.badgeBg} ${visual.badgeText} ${visual.badgeBorder}`}>
+                          {visual.label}
+                        </span>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                          isGarmin 
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' 
+                            : 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                        }`}>
+                          {isGarmin ? 'Garmin Connect' : 'Strava'}
+                        </span>
+                        {act.trainingEffect && (
+                          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                            TE {act.trainingEffect.aerobic} Aeróbico
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                        {act.title}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tabular-nums">
+                        {act.date}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${visual.badgeBg} ${visual.badgeText} ${visual.badgeBorder}`}>
-                        {visual.label}
-                      </span>
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
-                        isGarmin 
-                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' 
-                          : 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
-                      }`}>
-                        {isGarmin ? 'Garmin Connect' : 'Strava'}
-                      </span>
+
+                  {/* Bloque Derecho: Métricas en Fila + Botón Analizar */}
+                  <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 sm:gap-6 text-xs text-slate-700 dark:text-slate-300 tabular-nums border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 dark:border-slate-800">
+                    
+                    {act.distanceKm && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">Distancia</span>
+                        <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.distanceKm} km</strong>
+                      </div>
+                    )}
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Duración</span>
+                      <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.durationMin} min</strong>
                     </div>
 
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">{act.title}</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tabular-nums">{act.date}</p>
+                    {act.avgPaceOrSpeed && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">Ritmo / Vel</span>
+                        <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.avgPaceOrSpeed}</strong>
+                      </div>
+                    )}
+
+                    {act.elevationGainM && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">Desnivel</span>
+                        <strong className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">+{act.elevationGainM} m</strong>
+                      </div>
+                    )}
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">FC Media</span>
+                      <strong className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1">
+                        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
+                        {act.avgHr} ppm
+                      </strong>
+                    </div>
+
+                    {/* Botón de Acción Directa */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedActivity(act);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 dark:bg-cyan-500 hover:bg-slate-800 dark:hover:bg-cyan-400 text-white dark:text-slate-950 font-bold transition-all shadow-xs touch-target"
+                      title="Ver análisis de telemetría, zonas y parciales"
+                    >
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      <span>Analizar</span>
+                    </button>
+
                   </div>
+
                 </div>
-
-                {/* Métricas clave en fila */}
-                <div className="flex items-center gap-3 sm:gap-6 text-xs text-slate-700 dark:text-slate-300 tabular-nums self-end sm:self-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 dark:border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
-                  {act.distanceKm && (
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Distancia</span>
-                      <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.distanceKm} km</strong>
-                    </div>
-                  )}
-
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Duración</span>
-                    <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.durationMin} min</strong>
-                  </div>
-
-                  {act.avgPaceOrSpeed && (
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Ritmo / Vel</span>
-                      <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.avgPaceOrSpeed}</strong>
-                    </div>
-                  )}
-
-                  {act.elevationGainM && (
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Desnivel</span>
-                      <strong className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">+{act.elevationGainM} m</strong>
-                    </div>
-                  )}
-
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">FC Media</span>
-                    <strong className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1">
-                      <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-50 dark:fill-rose-950" />
-                      {act.avgHr} ppm
-                    </strong>
-                  </div>
-                </div>
-
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal de Detalle Exhaustivo de la Actividad */}
+      <ActivityDetailModal
+        activity={selectedActivity}
+        isOpen={!!selectedActivity}
+        onClose={() => setSelectedActivity(null)}
+      />
+
     </div>
   );
 }

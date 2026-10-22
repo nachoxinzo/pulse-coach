@@ -523,7 +523,7 @@ export function CorosDashboard({
       {/* ============================================================== */}
       {/* 4. PREDICTOR DE TIEMPOS DE CARRERA (EVOLAB RACE PREDICTOR) */}
       {/* ============================================================== */}
-      <RacePredictor vo2Max={metrics.vo2Max} />
+      <RacePredictor vo2Max={metrics.vo2Max} activities={activities} />
 
     </div>
   );
