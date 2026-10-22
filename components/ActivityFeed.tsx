@@ -172,15 +172,15 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
     <div className="space-y-6">
       
       {/* Cabecera */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/90 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/90 dark:border-slate-800 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Historial de Actividades</h2>
-          <p className="text-xs sm:text-sm text-slate-500">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Historial de Actividades</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Registro cronológico sincronizado de entrenamientos y salidas de Garmin Connect y Strava.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 tabular-nums">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
             {activities.length} sesiones registradas
           </span>
         </div>
@@ -196,7 +196,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
           return (
             <div 
               key={act.id}
-              className="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] hover:border-slate-300 transition-colors"
+              className="bg-white dark:bg-[#0F172A] rounded-xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 
@@ -212,50 +212,50 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                       </span>
                       <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
                         isGarmin 
-                          ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                          : 'bg-orange-50 text-orange-700 border-orange-200'
+                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' 
+                          : 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
                       }`}>
                         {isGarmin ? 'Garmin Connect' : 'Strava'}
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-bold text-slate-900 leading-snug">{act.title}</h4>
-                    <p className="text-xs text-slate-500 font-medium tabular-nums">{act.date}</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">{act.title}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tabular-nums">{act.date}</p>
                   </div>
                 </div>
 
                 {/* Métricas clave en fila */}
-                <div className="flex items-center gap-4 sm:gap-6 text-xs text-slate-700 tabular-nums self-end sm:self-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 w-full sm:w-auto justify-between sm:justify-start">
+                <div className="flex items-center gap-3 sm:gap-6 text-xs text-slate-700 dark:text-slate-300 tabular-nums self-end sm:self-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 dark:border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
                   {act.distanceKm && (
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-semibold block">Distancia</span>
-                      <strong className="font-bold text-slate-900 text-sm">{act.distanceKm} km</strong>
+                      <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.distanceKm} km</strong>
                     </div>
                   )}
 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-semibold block">Duración</span>
-                    <strong className="font-bold text-slate-900 text-sm">{act.durationMin} min</strong>
+                    <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.durationMin} min</strong>
                   </div>
 
                   {act.avgPaceOrSpeed && (
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-semibold block">Ritmo / Vel</span>
-                      <strong className="font-bold text-slate-900 text-sm">{act.avgPaceOrSpeed}</strong>
+                      <strong className="font-bold text-slate-900 dark:text-white text-sm">{act.avgPaceOrSpeed}</strong>
                     </div>
                   )}
 
                   {act.elevationGainM && (
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-semibold block">Desnivel</span>
-                      <strong className="font-bold text-emerald-700 text-sm">+{act.elevationGainM} m</strong>
+                      <strong className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">+{act.elevationGainM} m</strong>
                     </div>
                   )}
 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-semibold block">FC Media</span>
-                    <strong className="font-bold text-slate-900 text-sm flex items-center gap-1">
-                      <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-50" />
+                    <strong className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1">
+                      <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-50 dark:fill-rose-950" />
                       {act.avgHr} ppm
                     </strong>
                   </div>

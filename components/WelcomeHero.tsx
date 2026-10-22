@@ -126,64 +126,64 @@ export function WelcomeHero({
       {/* ============================================================== */}
       <section className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Todo lo que necesitas para tu entrenamiento inteligente
           </h2>
-          <p className="text-sm text-slate-500 max-w-xl mx-auto">
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
             Sin algoritmos opacos ni suscripciones forzosas. Ciencia deportiva aplicada directamente a tus datos reales.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           
           {/* Pilar 1 */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/80 text-cyan-700 flex items-center justify-center">
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/80 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 stroke-[2]" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Curva de Carga EvoLab (PMC)
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Calcula tu Forma Base (CTL a 42 días) y Fatiga Inmediata (ATL a 7 días). Conoce con precisión tu Balance de Frescura (TSB) para competir en tu punto óptimo.
             </p>
           </div>
 
           {/* Pilar 2 */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 flex items-center justify-center">
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800 text-amber-700 dark:text-amber-400 flex items-center justify-center">
               <Trophy className="w-5 h-5 stroke-[2]" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Predictor de Competición
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Pronósticos de tiempos y ritmos exactos por kilómetro para 5K, 10K, Media Maratón y 42K basados en tu VO2max real y economía aeróbica.
             </p>
           </div>
 
           {/* Pilar 3 */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 flex items-center justify-center">
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
               <Compass className="w-5 h-5 stroke-[2]" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Rutas Circulares con GPX
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Genera tiradas circulares de la distancia que desees (5 a 120 km) partiendo desde tu ubicación actual y envíalas directamente a Garmin Connect.
             </p>
           </div>
 
           {/* Pilar 4 */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-700 flex items-center justify-center">
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5 stroke-[2]" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Privacidad & Cuentas Aisladas
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Cada usuario dispone de su propia base de datos cifrada en Turso. Compatible con cuentas gratuitas de Strava sin alterar tus actividades ni perfiles.
             </p>
           </div>
@@ -194,7 +194,7 @@ export function WelcomeHero({
       {/* ============================================================== */}
       {/* 3. LLAMADA FINAL A LA ACCIÓN */}
       {/* ============================================================== */}
-      <section className="rounded-2xl bg-slate-900 text-white p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-between gap-6 border border-slate-800">
+      <section className="rounded-2xl bg-slate-900 dark:bg-[#0F172A] text-white p-6 sm:p-10 flex flex-col sm:flex-row items-center justify-between gap-6 border border-slate-800">
         <div className="space-y-1.5 text-center sm:text-left">
           <h3 className="text-xl sm:text-2xl font-bold tracking-tight">
             ¿Listo para llevar tu entrenamiento al siguiente nivel?

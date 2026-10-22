@@ -23,7 +23,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0F172A',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F8FAFC' },
+    { media: '(prefers-color-scheme: dark)', color: '#080D1A' },
+  ],
 };
 
 export default function RootLayout({
@@ -32,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="h-full bg-slate-50">
+    <html lang="es" className="h-full" suppressHydrationWarning>
       <head>
         <link
           rel="stylesheet"
@@ -40,8 +43,28 @@ export default function RootLayout({
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossOrigin=""
         />
+        {/* Script inline anti-flicker de modo oscuro según el sistema del móvil */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var storedTheme = localStorage.getItem('pulse_theme');
+                  var isDark = storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.setAttribute('data-theme', 'light');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
-      <body className="min-h-full flex flex-col text-slate-900 bg-slate-50 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+      <body className="min-h-full flex flex-col antialiased bg-[var(--background)] text-[var(--foreground)] selection:bg-cyan-500/20 selection:text-cyan-300">
         {children}
       </body>
     </html>

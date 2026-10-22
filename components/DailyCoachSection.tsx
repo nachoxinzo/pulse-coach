@@ -119,11 +119,11 @@ export function DailyCoachSection({
       )}
 
       {/* Selectores de Tiempo Disponible & Deporte */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-4">
+      <div className="bg-white dark:bg-[#0F172A] p-4 sm:p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] space-y-4">
         
         {/* Selector de Tiempo */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             ¿Cuánto tiempo tienes para entrenar hoy?
           </label>
@@ -132,10 +132,10 @@ export function DailyCoachSection({
               <button
                 key={minutes}
                 onClick={() => setSelectedTimeMin(minutes)}
-                className={`py-2.5 px-2 rounded-lg text-sm font-bold transition-all text-center touch-target ${
+                className={`py-2.5 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center touch-target ${
                   selectedTimeMin === minutes
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 active:scale-[0.98]'
+                    ? 'bg-slate-900 dark:bg-cyan-500 text-white dark:text-slate-950 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 active:scale-[0.98]'
                 }`}
               >
                 {minutes} min
@@ -146,7 +146,7 @@ export function DailyCoachSection({
 
         {/* Selector de Deporte */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
             Deporte o Enfoque Preferido
           </label>
           <div className="flex flex-wrap gap-2">
@@ -157,13 +157,13 @@ export function DailyCoachSection({
                 <button
                   key={opt.id}
                   onClick={() => setSelectedSport(opt.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all touch-target ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all touch-target ${
                     isSelected
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 active:scale-[0.98]'
+                      ? 'bg-indigo-600 dark:bg-cyan-500 text-white dark:text-slate-950 shadow-xs'
+                      : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 active:scale-[0.98]'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white dark:text-slate-950' : 'text-slate-500 dark:text-slate-400'}`} />
                   <span>{opt.label}</span>
                 </button>
               );
@@ -173,7 +173,7 @@ export function DailyCoachSection({
 
       </div>
 
-      {/* Pestañas de Planes Generados (Principal, Alternativo, Non-Zero Express) */}
+      {/* Pestañas de Planes Generados */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {plans.map((p) => {
@@ -183,19 +183,19 @@ export function DailyCoachSection({
               <button
                 key={p.id}
                 onClick={() => setActivePlanId(p.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border touch-target ${
+                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border touch-target ${
                   isSelected
-                    ? 'bg-white border-indigo-600 text-indigo-900 shadow-sm ring-2 ring-indigo-100'
-                    : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
+                    ? 'bg-white dark:bg-[#0F172A] border-indigo-600 dark:border-cyan-400 text-indigo-900 dark:text-cyan-300 shadow-sm ring-2 ring-indigo-100 dark:ring-cyan-950'
+                    : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-850'
                 }`}
               >
-                <SportIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <SportIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-600 dark:text-cyan-400' : 'text-slate-400'}`} />
                 <span>
                   {p.category === 'primary' && '★ Recomendación Óptima'}
                   {p.category === 'alternative' && 'Opción Alternativa'}
-                  {p.category === 'non_zero_rescue' && '⚡ Micro-Dosis Non-Zero (12m)'}
+                  {p.category === 'non_zero_rescue' && '⚡ Micro-Dosis (12m)'}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 tabular-nums">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 tabular-nums">
                   {p.estimatedDurationMin}m
                 </span>
               </button>
@@ -205,92 +205,90 @@ export function DailyCoachSection({
 
         {/* Detalle del Plan Seleccionado */}
         {currentPlan && (
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] overflow-hidden">
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] overflow-hidden">
             
             {/* Header del Entrenamiento */}
-            <div className="p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
+            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
                       {currentPlan.sport === 'running' && 'Running'}
                       {currentPlan.sport === 'cycling' && 'Ciclismo Carretera'}
                       {currentPlan.sport === 'mtb' && 'Mountain Bike (MTB)'}
                       {currentPlan.sport === 'trail' && 'Trail Running Monte'}
                       {currentPlan.sport === 'strength_mobility' && 'Fuerza / Movilidad'}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                      Intensidad: {currentPlan.intensityLevel}
+                    <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      {currentPlan.intensityLevel}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 tabular-nums">
-                      {currentPlan.estimatedDurationMin} minutos
+                    <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
+                      {currentPlan.estimatedDurationMin} min
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">{currentPlan.title}</h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Zona Objetivo: <strong className="text-slate-700">{currentPlan.targetZoneDescription}</strong>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">{currentPlan.title}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Zona Objetivo: <strong className="text-slate-700 dark:text-slate-200">{currentPlan.targetZoneDescription}</strong>
                   </p>
                 </div>
 
                 {/* Acciones principales */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Botón de Rutas si es exterior */}
+                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
                   {currentPlan.suggestedRouteDistanceKm && (
                     <button
                       onClick={() => onSelectRouteForWorkout(currentPlan.sport, currentPlan.suggestedRouteDistanceKm!)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition-all touch-target"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 transition-all touch-target"
                     >
-                      <Compass className="w-4 h-4 text-indigo-600" />
+                      <Compass className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       <span>Ruta ({currentPlan.suggestedRouteDistanceKm} km)</span>
                     </button>
                   )}
 
-                  {/* Botón de Marcar como Hecho */}
                   <button
                     onClick={() => onCompleteWorkout(currentPlan.title)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-all active:scale-[0.98] touch-target"
+                    className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg bg-slate-900 dark:bg-cyan-500 hover:bg-slate-800 dark:hover:bg-cyan-400 text-white dark:text-slate-950 text-xs font-bold shadow-xs transition-all active:scale-[0.98] touch-target"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>{todayCompleted ? 'Actualizar Completado' : 'Completar Sesión'}</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-slate-950" />
+                    <span>{todayCompleted ? 'Actualizar' : 'Completar'}</span>
                   </button>
                 </div>
               </div>
 
               {/* Justificación Científica */}
-              <div className="mt-4 p-3.5 bg-slate-100/70 rounded-xl text-xs text-slate-700 leading-relaxed border border-slate-200/60">
-                <strong className="font-semibold text-slate-900">Por qué este entrenamiento: </strong>
+              <div className="mt-4 p-3 bg-slate-100/70 dark:bg-slate-900/80 rounded-xl text-xs text-slate-700 dark:text-slate-300 leading-relaxed border border-slate-200/60 dark:border-slate-800">
+                <strong className="font-semibold text-slate-900 dark:text-white">Por qué este entrenamiento: </strong>
                 {currentPlan.rationale}
               </div>
             </div>
 
             {/* Estructura del Entrenamiento por Bloques */}
-            <div className="p-6 space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Estructura Paso a Paso
               </h4>
 
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {currentPlan.steps.map((step, idx) => (
                   <div 
                     key={idx}
-                    className="flex items-start gap-4 p-3.5 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 transition-colors"
+                    className="flex items-start gap-3 sm:gap-4 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0">
                       {idx + 1}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-slate-900">{step.name}</p>
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{step.name}</p>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          <span className="text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
                             {step.intensity}
                           </span>
-                          <span className="text-xs font-bold text-slate-700 tabular-nums">
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">
                             {step.durationMin} min
                           </span>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1">{step.instruction}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{step.instruction}</p>
                     </div>
                   </div>
                 ))}

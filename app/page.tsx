@@ -148,7 +148,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors">
       
       {/* Barra de Navegación Superior y Móvil Drawer */}
       <Navbar
@@ -165,25 +165,25 @@ export default function Home() {
 
       {/* Banner de Aviso en Modo Demo */}
       {!currentUser && isDemoMode && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-cyan-500/10 to-indigo-500/10 border-b border-amber-500/20 py-2.5 px-4">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 text-slate-700">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+        <div className="bg-gradient-to-r from-amber-500/10 via-cyan-500/10 to-indigo-500/10 border-b border-amber-500/20 dark:border-amber-500/30 py-2 px-3 sm:px-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-2 text-xs">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-center sm:text-left">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
               <span>
-                <strong>Modo Demo Activo:</strong> Estás explorando con telemetría de muestra. Tus datos no se guardarán hasta iniciar sesión.
+                <strong>Modo Demo Activo:</strong> Estás explorando con telemetría de muestra.
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleOpenAuth('register')}
-                className="font-bold text-indigo-700 hover:text-indigo-800 underline"
+                className="font-bold text-indigo-700 dark:text-cyan-400 hover:underline"
               >
                 Crear Cuenta Gratuita
               </button>
-              <span className="text-slate-300">|</span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
               <button
                 onClick={() => setIsDemoMode(false)}
-                className="text-slate-500 hover:text-slate-800"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
               >
                 Volver a Portada
               </button>
@@ -296,7 +296,7 @@ export default function Home() {
       />
 
       {/* Footer Discreto */}
-      <footer className="border-t border-slate-200/80 bg-white py-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0B1120] py-6 text-center text-xs text-slate-500 dark:text-slate-400 pb-safe">
         <p className="max-w-7xl mx-auto px-4">
           <strong>Pulse Coach</strong> — Plataforma de Entrenamiento Adaptativo. Fusión biométrica de Garmin Connect™ y telemetría de Strava™.
         </p>

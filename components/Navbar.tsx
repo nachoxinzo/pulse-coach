@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   Compass, 
@@ -8,18 +8,16 @@ import {
   HeartPulse, 
   Menu, 
   X, 
-  RefreshCw, 
-  ShieldCheck, 
   CheckCircle2, 
   Watch, 
   Trophy, 
   User, 
   LogOut, 
-  Smartphone, 
-  Radio, 
   LayoutDashboard,
-  HelpCircle,
-  Sparkles
+  Sparkles,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { UserSessionPayload } from '@/lib/auth';
 
@@ -47,6 +45,70 @@ export function Navbar({
   onOpenTutorial,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'system' | 'dark' | 'light'>('system');
+
+  // Inicializar y escuchar el tema
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pulse_theme') as 'system' | 'dark' | 'light' | null;
+      if (stored) {
+        setTheme(stored);
+        applyTheme(stored);
+      } else {
+        setTheme('system');
+        applyTheme('system');
+      }
+    } catch {
+      // Ignorar en SSR
+    }
+
+    // Escuchar cambios de preferencia del sistema si está en 'system'
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      const currentStored = localStorage.getItem('pulse_theme');
+      if (!currentStored || currentStored === 'system') {
+        applyTheme('system');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  const applyTheme = (targetTheme: 'system' | 'dark' | 'light') => {
+    const root = document.documentElement;
+    let isDark = false;
+
+    if (targetTheme === 'dark') {
+      isDark = true;
+    } else if (targetTheme === 'light') {
+      isDark = false;
+    } else {
+      isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    if (isDark) {
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+    }
+  };
+
+  const handleToggleTheme = () => {
+    let nextTheme: 'system' | 'dark' | 'light' = 'dark';
+    if (theme === 'system') nextTheme = 'dark';
+    else if (theme === 'dark') nextTheme = 'light';
+    else nextTheme = 'system';
+
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem('pulse_theme', nextTheme);
+    } catch {
+      // Ignorar
+    }
+    applyTheme(nextTheme);
+  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -64,17 +126,17 @@ export function Navbar({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-sm border-b border-slate-200/90 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-[#0B1120]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] pt-safe transition-colors">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             
             {/* Logo & Marca */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button 
                 onClick={() => handleSelect('dashboard')}
-                className="flex items-center gap-2.5 text-left focus:outline-hidden"
+                className="flex items-center gap-2 text-left focus:outline-hidden"
               >
-                <div className="w-10 h-10 rounded-xl bg-slate-950 border border-cyan-500/30 flex items-center justify-center p-1 shadow-[0_0_12px_rgba(6,182,212,0.25)] shrink-0 overflow-hidden">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-950 border border-cyan-500/40 flex items-center justify-center p-1 shadow-[0_0_12px_rgba(6,182,212,0.3)] shrink-0 overflow-hidden">
                   <img 
                     src="/logo.png" 
                     alt="Pulse Coach Logo" 
@@ -83,14 +145,14 @@ export function Navbar({
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-black text-lg tracking-tight text-slate-900">
+                    <span className="font-black text-base sm:text-lg tracking-tight text-slate-900 dark:text-white leading-tight">
                       Pulse Coach
                     </span>
-                    <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-cyan-50 text-cyan-800 border border-cyan-200">
+                    <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-wider px-1.5 py-0.2 rounded-md bg-cyan-50 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
                       EvoLab
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium hidden sm:block">Inteligencia Deportiva & Rutas</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">Inteligencia Deportiva & Rutas</p>
                 </div>
               </button>
             </div>
@@ -104,73 +166,90 @@ export function Navbar({
                   <button
                     key={item.id}
                     onClick={() => handleSelect(item.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 touch-target ${
+                    className={`flex items-center gap-2 px-3 py-1.5 lg:px-3.5 lg:py-2 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-150 touch-target ${
                       isActive
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 active:scale-[0.98]'
+                        ? 'bg-slate-900 dark:bg-cyan-500 text-white dark:text-slate-950 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.98]'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 stroke-[1.75] ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 stroke-[1.75] ${isActive ? 'text-cyan-400 dark:text-slate-950' : 'text-slate-400 dark:text-slate-400'}`} />
                     <span>{item.label}</span>
                   </button>
                 );
               })}
             </nav>
 
-            {/* Acciones de la derecha: Racha + Sincronización */}
-            <div className="flex items-center gap-2.5">
+            {/* Acciones de la derecha: Racha + Tema + Auth */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              
+              {/* Selector Rápido de Tema (Claro / Oscuro / Auto) */}
+              <button
+                onClick={handleToggleTheme}
+                className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all touch-target"
+                title={`Tema actual: ${theme === 'system' ? 'Automático (Sistema del móvil)' : theme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}. Toca para cambiar.`}
+                aria-label="Cambiar tema de color"
+              >
+                {theme === 'dark' ? (
+                  <Moon className="w-4 h-4 text-cyan-400" />
+                ) : theme === 'light' ? (
+                  <Sun className="w-4 h-4 text-amber-500" />
+                ) : (
+                  <Monitor className="w-4 h-4 text-indigo-400" />
+                )}
+              </button>
+
               {/* Racha Non-Zero */}
               <div 
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold tabular-nums ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg border text-xs font-semibold tabular-nums ${
                   todayCompleted
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                    : 'bg-amber-50 text-amber-800 border-amber-200/80'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                 }`}
                 title={todayCompleted ? '¡Día completado! Racha activa' : 'Entreno de hoy pendiente'}
               >
                 {todayCompleted ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 stroke-[2]" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2]" />
                 ) : (
-                  <Flame className="w-3.5 h-3.5 text-amber-600 stroke-[2]" />
+                  <Flame className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2]" />
                 )}
-                <span>{streakDays} días racha</span>
+                <span>{streakDays} <span className="hidden sm:inline">días</span></span>
               </div>
 
-              {/* Botón Sincronizar Cuentas */}
+              {/* Botón Sincronizar Cuentas (Desktop) */}
               <button
                 onClick={onOpenSync}
-                className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] touch-target"
+                className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] touch-target"
               >
-                <Watch className="w-3.5 h-3.5 text-slate-500 stroke-[1.75]" />
+                <Watch className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 stroke-[1.75]" />
                 <span>Cuentas</span>
               </button>
 
-              {/* Botón Guía / Tutorial */}
+              {/* Botón Guía / Tutorial (Desktop) */}
               {onOpenTutorial && (
                 <button
                   onClick={onOpenTutorial}
-                  className="hidden sm:flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-cyan-700 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] touch-target"
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] touch-target"
                   title="Ver Tutorial Guiado"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Guía</span>
                 </button>
               )}
 
               {/* Estado de Usuario / Auth */}
               {currentUser ? (
-                <div className="hidden sm:flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200/80 text-xs text-slate-800">
-                    <User className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="font-bold max-w-[90px] truncate">{currentUser.name}</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 bg-white px-1 rounded border border-slate-200">
+                <div className="hidden sm:flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200">
+                    <User className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <span className="font-bold max-w-[85px] truncate">{currentUser.name}</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1 rounded border border-slate-200 dark:border-slate-700">
                       {currentUser.primaryDevice}
                     </span>
                   </div>
                   {onLogout && (
                     <button
                       onClick={onLogout}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all touch-target"
+                      className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-all touch-target"
                       title="Cerrar sesión"
                     >
                       <LogOut className="w-4 h-4" />
@@ -179,59 +258,108 @@ export function Navbar({
                 </div>
               ) : (
                 onOpenAuth && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="hidden sm:flex items-center gap-1.5">
                     <button
                       onClick={() => onOpenAuth('login')}
-                      className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all touch-target"
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all touch-target"
                     >
                       <span>Entrar</span>
                     </button>
                     <button
                       onClick={() => onOpenAuth('register')}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all touch-target"
+                      className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black shadow-xs transition-all touch-target"
                     >
-                      <User className="w-3.5 h-3.5" />
-                      <span>Registrarse</span>
+                      <span>Registro</span>
                     </button>
                   </div>
                 )
               )}
 
-              {/* Botón Hamburguesa Móvil */}
+              {/* Botón Hamburguesa Móvil Accesible */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-850 active:scale-95 transition-all touch-target"
                 aria-label="Abrir menú"
               >
-                {mobileMenuOpen ? <X className="w-6 h-6 stroke-[1.75]" /> : <Menu className="w-6 h-6 stroke-[1.75]" />}
+                {mobileMenuOpen ? <X className="w-6 h-6 stroke-[2]" /> : <Menu className="w-6 h-6 stroke-[2]" />}
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Drawer Móvil Off-Canvas */}
+      {/* Drawer Móvil Off-Canvas Profesional con Safe Areas */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div 
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative ml-auto w-full max-w-xs bg-white h-full shadow-2xl flex flex-col p-6 z-10">
-            <div className="flex items-center justify-between pb-5 border-b border-slate-200">
+          <div className="relative ml-auto w-full max-w-xs bg-white dark:bg-[#0B1120] text-slate-900 dark:text-white h-full shadow-2xl flex flex-col p-5 z-10 pt-safe pb-safe border-l border-slate-200 dark:border-slate-800 overflow-y-auto">
+            
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <HeartPulse className="w-5 h-5 text-indigo-600 stroke-[2]" />
-                <span className="font-bold text-slate-900">Menú Pulse Coach</span>
+                <HeartPulse className="w-5 h-5 text-cyan-500 stroke-[2]" />
+                <span className="font-bold text-slate-900 dark:text-white text-base">Menú Pulse Coach</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="py-4 space-y-1">
+            {/* Selector de Tema en Móvil */}
+            <div className="py-3 border-b border-slate-200 dark:border-slate-800">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                Tema de Visualización
+              </span>
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                <button
+                  onClick={() => {
+                    setTheme('system');
+                    try { localStorage.setItem('pulse_theme', 'system'); } catch {}
+                    applyTheme('system');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg font-medium flex items-center justify-center gap-1 transition-all ${
+                    theme === 'system' ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs font-bold' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>Auto</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTheme('dark');
+                    try { localStorage.setItem('pulse_theme', 'dark'); } catch {}
+                    applyTheme('dark');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg font-medium flex items-center justify-center gap-1 transition-all ${
+                    theme === 'dark' ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs font-bold' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5" />
+                  <span>Oscuro</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTheme('light');
+                    try { localStorage.setItem('pulse_theme', 'light'); } catch {}
+                    applyTheme('light');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg font-medium flex items-center justify-center gap-1 transition-all ${
+                    theme === 'light' ? 'bg-white dark:bg-slate-800 text-amber-600 shadow-xs font-bold' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5" />
+                  <span>Claro</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Enlaces de Pestañas */}
+            <div className="py-3 space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -239,39 +367,40 @@ export function Navbar({
                   <button
                     key={item.id}
                     onClick={() => handleSelect(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-semibold transition-colors touch-target ${
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors touch-target ${
                       isActive
-                        ? 'bg-slate-900 text-white'
-                        : 'text-slate-700 hover:bg-slate-100'
+                        ? 'bg-slate-900 dark:bg-cyan-500 text-white dark:text-slate-950 font-bold'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-850'
                     }`}
                   >
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400 dark:text-slate-950' : 'text-slate-400'}`} />
                     <span>{item.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="mt-auto pt-6 border-t border-slate-200 space-y-3">
+            {/* Acciones Inferiores del Menú Móvil */}
+            <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
               {currentUser ? (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-indigo-600" />
-                      <span className="text-xs font-bold text-slate-900">{currentUser.name}</span>
+                      <User className="w-4 h-4 text-cyan-500" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
                     </div>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                       {currentUser.primaryDevice}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 block truncate">{currentUser.email}</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate">{currentUser.email}</span>
                   {onLogout && (
                     <button
                       onClick={() => {
                         setMobileMenuOpen(false);
                         onLogout();
                       }}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 rounded-lg transition-colors"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Cerrar Sesión</span>
@@ -280,16 +409,26 @@ export function Navbar({
                 </div>
               ) : (
                 onOpenAuth && (
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenAuth();
-                    }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-600 text-white text-sm font-bold shadow-xs touch-target"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Iniciar Sesión / Registro</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenAuth('login');
+                      }}
+                      className="flex items-center justify-center py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold touch-target"
+                    >
+                      Iniciar Sesión
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenAuth('register');
+                      }}
+                      className="flex items-center justify-center py-2.5 px-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black touch-target"
+                    >
+                      Registrarse
+                    </button>
+                  </div>
                 )
               )}
 
@@ -298,9 +437,9 @@ export function Navbar({
                   setMobileMenuOpen(false);
                   onOpenSync();
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm font-semibold touch-target"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-semibold touch-target"
               >
-                <Watch className="w-4 h-4 text-slate-600" />
+                <Watch className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 <span>Configurar Garmin & Strava</span>
               </button>
 
@@ -310,9 +449,9 @@ export function Navbar({
                     setMobileMenuOpen(false);
                     onOpenTutorial();
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-cyan-200 bg-cyan-50/60 text-cyan-900 text-sm font-semibold touch-target"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-cyan-200 dark:border-cyan-800/80 bg-cyan-50/60 dark:bg-cyan-950/40 text-cyan-900 dark:text-cyan-300 text-xs font-semibold touch-target"
                 >
-                  <Sparkles className="w-4 h-4 text-cyan-600" />
+                  <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   <span>Ver Tutorial Guiado</span>
                 </button>
               )}

@@ -7,8 +7,6 @@ import {
   Lock, 
   User as UserIcon, 
   Watch, 
-  Smartphone, 
-  Radio, 
   CheckCircle2, 
   AlertCircle, 
   RefreshCw,
@@ -27,12 +25,12 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
 
-  // Sincronizar initialMode cuando se abre
   React.useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
     }
   }, [isOpen, initialMode]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -77,27 +75,27 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
       <div 
-        className="w-full max-w-md bg-white rounded-2xl border border-slate-200/90 shadow-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-md bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col text-slate-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/60">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-700">
+            <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-700 dark:text-indigo-400">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 {mode === 'login' ? 'Iniciar Sesión en Pulse Coach' : 'Crear Cuenta Deportiva'}
               </h3>
-              <p className="text-[11px] text-slate-500">Tus métricas y tracks totalmente aislados y privados</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Tus métricas y tracks totalmente aislados y privados</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all touch-target"
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all touch-target"
             aria-label="Cerrar modal"
           >
             <X className="w-5 h-5" />
@@ -105,14 +103,14 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
         </div>
 
         {/* Interruptor Modo */}
-        <div className="p-3 bg-slate-100/70 border-b border-slate-200/80 flex items-center gap-1">
+        <div className="p-3 bg-slate-100/70 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-1">
           <button
             type="button"
             onClick={() => { setMode('login'); setErrorMessage(null); }}
             className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all touch-target text-center ${
               mode === 'login' 
-                ? 'bg-white text-slate-900 shadow-xs' 
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs' 
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             Ya tengo cuenta
@@ -122,8 +120,8 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
             onClick={() => { setMode('register'); setErrorMessage(null); }}
             className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all touch-target text-center ${
               mode === 'register' 
-                ? 'bg-white text-slate-900 shadow-xs' 
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs' 
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             Nuevo Registro
@@ -132,7 +130,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="mx-5 mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2 animate-in fade-in">
+          <div className="mx-5 mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs flex items-center gap-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -142,7 +140,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {mode === 'register' && (
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1.5">Nombre o Alias</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Nombre o Alias</label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -151,14 +149,14 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ej. Nacho, Carlos, Laura..."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base sm:text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Correo Electrónico</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Correo Electrónico</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -167,30 +165,30 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu_email@ejemplo.com"
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base sm:text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Contraseña</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Contraseña (Mínimo 8 caracteres)</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                placeholder="Mínimo 8 caracteres"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base sm:text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500"
               />
             </div>
           </div>
 
           {mode === 'register' && (
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1.5">Dispositivo Principal de Entrenamiento</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Dispositivo Principal de Entrenamiento</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'garmin', name: 'Garmin', desc: 'Reloj / Edge' },
@@ -204,12 +202,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
                     onClick={() => setPrimaryDevice(dev.id as any)}
                     className={`p-2.5 rounded-xl border text-left transition-all touch-target ${
                       primaryDevice === dev.id
-                        ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-200'
-                        : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+                        ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/70 dark:bg-cyan-950/50 ring-2 ring-cyan-200 dark:ring-cyan-900'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/60'
                     }`}
                   >
-                    <span className="text-xs font-bold text-slate-900 block">{dev.name}</span>
-                    <span className="text-[10px] text-slate-500 block">{dev.desc}</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">{dev.name}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{dev.desc}</span>
                   </button>
                 ))}
               </div>
@@ -220,10 +218,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md transition-all touch-target active:scale-[0.98] disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 dark:bg-cyan-500 hover:bg-slate-800 dark:hover:bg-cyan-400 text-white dark:text-slate-950 text-xs font-black shadow-md transition-all touch-target active:scale-[0.98] disabled:opacity-60"
             >
               {isLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                <RefreshCw className="w-4 h-4 animate-spin text-white dark:text-slate-950" />
               ) : (
                 <ArrowRight className="w-4 h-4" />
               )}
@@ -233,9 +231,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }:
         </form>
 
         {/* Footer Informativo */}
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             Cifrado con sal PBKDF2 y JWT
           </span>
           <span>Aislamiento 100% garantizado</span>
