@@ -201,6 +201,7 @@ export default function Home() {
       <SyncModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
+        onSyncSuccess={() => loadUserData()}
       />
 
       {/* Modal de Autenticación y Registro Multi-usuario */}

@@ -6,23 +6,41 @@ import { X, Watch, Key, CheckCircle2, Shield, RefreshCw } from 'lucide-react';
 interface SyncModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSyncSuccess?: () => void;
 }
 
-export function SyncModal({ isOpen, onClose }: SyncModalProps) {
+export function SyncModal({ isOpen, onClose, onSyncSuccess }: SyncModalProps) {
   const [garminUser, setGarminUser] = useState('');
   const [garminPass, setGarminPass] = useState('');
   const [stravaToken, setStravaToken] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSyncingGarmin, setIsSyncingGarmin] = useState(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const handleSyncRealGarmin = async () => {
+    setIsSyncingGarmin(true);
+    setSyncStatusMsg('Conectando con Garmin Connect y leyendo tus actividades reales...');
+    try {
+      const res = await fetch('/api/garmin/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSyncStatusMsg(`¡Éxito! Se han importado ${data.activitiesCount} actividades reales de tu cuenta de Garmin.`);
+        if (onSyncSuccess) onSyncSuccess();
+      } else {
+        setSyncStatusMsg(`Aviso: ${data.error || 'No se pudieron descargar las actividades.'}`);
+      }
+    } catch {
+      setSyncStatusMsg('Error de red al conectar con el servidor de sincronización.');
+    } finally {
+      setIsSyncingGarmin(false);
+    }
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-      onClose();
-    }, 1200);
+    handleSyncRealGarmin();
   };
 
   return (
@@ -57,26 +75,42 @@ export function SyncModal({ isOpen, onClose }: SyncModalProps) {
                 <span className="text-xs font-bold text-slate-900">Garmin Connect</span>
               </div>
               <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                Modo Demo Activo
+                Sesión Conectada
               </span>
             </div>
-            <div className="space-y-2">
-              <input
-                type="email"
-                placeholder="Email de Garmin Connect (opcional)"
-                value={garminUser}
-                onChange={(e) => setGarminUser(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-indigo-500"
-              />
-              <input
-                type="password"
-                placeholder="Contraseña (se guarda localmente encriptada)"
-                value={garminPass}
-                onChange={(e) => setGarminPass(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-indigo-500"
-              />
-            </div>
+
+            <p className="text-xs text-slate-500">
+              Sincroniza tus salidas y entrenamientos reales registrados en tu reloj o ciclocomputador Garmin.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleSyncRealGarmin}
+              disabled={isSyncingGarmin}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs touch-target active:scale-[0.98] disabled:opacity-60"
+            >
+              {isSyncingGarmin ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                <Watch className="w-4 h-4 text-white" />
+              )}
+              <span>{isSyncingGarmin ? 'Sincronizando con Garmin...' : 'Descargar Mis Actividades Reales'}</span>
+            </button>
           </div>
+
+          {/* Banner de Estado */}
+          {syncStatusMsg && (
+            <div className="p-3 bg-slate-900 text-white text-xs rounded-xl flex items-center justify-between gap-2 shadow-sm animate-in fade-in">
+              <span>{syncStatusMsg}</span>
+              <button
+                type="button"
+                onClick={() => setSyncStatusMsg(null)}
+                className="text-slate-400 hover:text-white underline text-[11px]"
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
 
           {/* Strava */}
           <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-3">

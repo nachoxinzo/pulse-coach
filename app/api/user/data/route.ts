@@ -31,7 +31,19 @@ export async function GET() {
     metrics = await getUserBiometrics(user.userId);
   }
 
-  const activities = await getUserActivities(user.userId);
+  let activities = await getUserActivities(user.userId);
+  const isMock = activities.some((a) => a.id.startsWith('act-'));
+  if (isMock || activities.length === 0) {
+    try {
+      const { syncRealGarminData } = await import('@/lib/garmin-sync');
+      await syncRealGarminData(user.userId);
+      activities = await getUserActivities(user.userId);
+      metrics = await getUserBiometrics(user.userId);
+    } catch (e) {
+      console.warn('Auto-sync Garmin en user/data:', e);
+    }
+  }
+
   const habit = await getUserHabit(user.userId);
 
   return NextResponse.json({
