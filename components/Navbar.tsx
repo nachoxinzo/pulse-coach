@@ -9,15 +9,17 @@ import {
   Menu, 
   X, 
   RefreshCw, 
-  ShieldCheck,
-  CheckCircle2,
-  Watch,
-  Trophy,
-  User,
-  LogOut,
-  Smartphone,
-  Radio,
-  LayoutDashboard
+  ShieldCheck, 
+  CheckCircle2, 
+  Watch, 
+  Trophy, 
+  User, 
+  LogOut, 
+  Smartphone, 
+  Radio, 
+  LayoutDashboard,
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 import { UserSessionPayload } from '@/lib/auth';
 
@@ -28,8 +30,9 @@ interface NavbarProps {
   todayCompleted: boolean;
   onOpenSync: () => void;
   currentUser?: UserSessionPayload | null;
-  onOpenAuth?: () => void;
+  onOpenAuth?: (mode?: 'login' | 'register') => void;
   onLogout?: () => void;
+  onOpenTutorial?: () => void;
 }
 
 export function Navbar({
@@ -41,6 +44,7 @@ export function Navbar({
   currentUser,
   onOpenAuth,
   onLogout,
+  onOpenTutorial,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -141,6 +145,18 @@ export function Navbar({
                 <span>Cuentas</span>
               </button>
 
+              {/* Botón Guía / Tutorial */}
+              {onOpenTutorial && (
+                <button
+                  onClick={onOpenTutorial}
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-cyan-700 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] touch-target"
+                  title="Ver Tutorial Guiado"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+                  <span>Guía</span>
+                </button>
+              )}
+
               {/* Estado de Usuario / Auth */}
               {currentUser ? (
                 <div className="hidden sm:flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
@@ -163,13 +179,21 @@ export function Navbar({
                 </div>
               ) : (
                 onOpenAuth && (
-                  <button
-                    onClick={onOpenAuth}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all touch-target"
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    <span>Entrar / Registro</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => onOpenAuth('login')}
+                      className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all touch-target"
+                    >
+                      <span>Entrar</span>
+                    </button>
+                    <button
+                      onClick={() => onOpenAuth('register')}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all touch-target"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>Registrarse</span>
+                    </button>
+                  </div>
                 )
               )}
 
@@ -279,6 +303,19 @@ export function Navbar({
                 <Watch className="w-4 h-4 text-slate-600" />
                 <span>Configurar Garmin & Strava</span>
               </button>
+
+              {onOpenTutorial && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenTutorial();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-cyan-200 bg-cyan-50/60 text-cyan-900 text-sm font-semibold touch-target"
+                >
+                  <Sparkles className="w-4 h-4 text-cyan-600" />
+                  <span>Ver Tutorial Guiado</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

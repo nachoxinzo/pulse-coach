@@ -11,9 +11,12 @@ import { ActivityFeed } from '@/components/ActivityFeed';
 import { SyncModal } from '@/components/SyncModal';
 import { AuthModal } from '@/components/AuthModal';
 import { CorosDashboard } from '@/components/CorosDashboard';
+import { WelcomeHero } from '@/components/WelcomeHero';
+import { GuidedTutorial } from '@/components/GuidedTutorial';
 import { UserSessionPayload } from '@/lib/auth';
 import { INITIAL_BIOMETRICS, INITIAL_NON_ZERO_HABIT, RECENT_ACTIVITIES } from '@/lib/mock-data';
 import { SportType, NonZeroHabit, BiometricMetrics, ActivitySession, PopularEvent } from '@/types';
+import { Sparkles, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'coach' | 'biometrics' | 'routes' | 'events' | 'activities'>('dashboard');
@@ -23,9 +26,12 @@ export default function Home() {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [activeTargetEvent, setActiveTargetEvent] = useState<PopularEvent | null>(null);
 
-  // Estados de Autenticación y Multi-usuario
+  // Estados de Autenticación, Demo y Tutorial Guiado
   const [currentUser, setCurrentUser] = useState<UserSessionPayload | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   // Cargar datos del usuario autenticado desde el servidor
   const loadUserData = async () => {
@@ -53,6 +59,7 @@ export default function Home() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       setCurrentUser(null);
+      setIsDemoMode(false);
       setMetrics(INITIAL_BIOMETRICS);
       setActivities(RECENT_ACTIVITIES);
       setHabit(INITIAL_NON_ZERO_HABIT);
@@ -61,9 +68,25 @@ export default function Home() {
     }
   };
 
-  const handleAuthSuccess = (user: UserSessionPayload) => {
+  const handleOpenAuth = (mode: 'login' | 'register' = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleAuthSuccess = (user: UserSessionPayload, isNewUser?: boolean) => {
     setCurrentUser(user);
+    setIsDemoMode(false);
     loadUserData();
+
+    // Si es registro nuevo o primer acceso, activar el tutorial guiado
+    if (isNewUser) {
+      setIsTutorialOpen(true);
+      try {
+        localStorage.setItem(`pulse_tutorial_seen_${user.userId}`, 'true');
+      } catch {
+        // Ignorar
+      }
+    }
   };
 
   // Estados de ruta seleccionada desde el Coach
@@ -135,75 +158,117 @@ export default function Home() {
         todayCompleted={habit.todayCompleted}
         onOpenSync={() => setIsSyncModalOpen(true)}
         currentUser={currentUser}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
+        onOpenTutorial={() => setIsTutorialOpen(true)}
       />
+
+      {/* Banner de Aviso en Modo Demo */}
+      {!currentUser && isDemoMode && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-cyan-500/10 to-indigo-500/10 border-b border-amber-500/20 py-2.5 px-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-slate-700">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+              <span>
+                <strong>Modo Demo Activo:</strong> Estás explorando con telemetría de muestra. Tus datos no se guardarán hasta iniciar sesión.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleOpenAuth('register')}
+                className="font-bold text-indigo-700 hover:text-indigo-800 underline"
+              >
+                Crear Cuenta Gratuita
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                onClick={() => setIsDemoMode(false)}
+                className="text-slate-500 hover:text-slate-800"
+              >
+                Volver a Portada
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contenido Principal */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
         
-        {/* PESTAÑA PRINCIPAL: DASHBOARD RESUMEN ESTILO COROS EVOLAB */}
-        {activeTab === 'dashboard' && (
-          <CorosDashboard
-            metrics={metrics}
-            activities={activities}
-            habit={habit}
-            onNavigateTab={(tab) => setActiveTab(tab)}
+        {/* CASO 1: VISITANTE NO AUTENTICADO Y NO EN DEMO -> PORTADA HERO BIENVENIDA */}
+        {!currentUser && !isDemoMode ? (
+          <WelcomeHero
+            onOpenRegister={() => handleOpenAuth('register')}
+            onOpenLogin={() => handleOpenAuth('login')}
+            onExploreDemo={() => setIsDemoMode(true)}
           />
-        )}
+        ) : (
+          /* CASO 2: USUARIO REGISTRADO / AUTENTICADO O EN MODO DEMO */
+          <>
+            {/* PESTAÑA PRINCIPAL: DASHBOARD RESUMEN ESTILO COROS EVOLAB */}
+            {activeTab === 'dashboard' && (
+              <CorosDashboard
+                metrics={metrics}
+                activities={activities}
+                habit={habit}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-        {/* PESTAÑA 2: COACH DIARIO */}
-        {activeTab === 'coach' && (
-          <div className="space-y-8">
-            <DailyCoachSection
-              metrics={metrics}
-              onSelectRouteForWorkout={handleSelectRouteForWorkout}
-              onCompleteWorkout={handleCompleteWorkout}
-              todayCompleted={habit.todayCompleted}
-              completedWorkoutTitle={habit.todayCompletedWorkoutTitle}
-            />
+            {/* PESTAÑA 2: COACH DIARIO */}
+            {activeTab === 'coach' && (
+              <div className="space-y-8">
+                <DailyCoachSection
+                  metrics={metrics}
+                  onSelectRouteForWorkout={handleSelectRouteForWorkout}
+                  onCompleteWorkout={handleCompleteWorkout}
+                  todayCompleted={habit.todayCompleted}
+                  completedWorkoutTitle={habit.todayCompletedWorkoutTitle}
+                />
 
-            {/* Tarjeta de Hábitos y Recordatorio Integrada */}
-            <NonZeroTracker
-              habit={habit}
-              onUpdateReminder={handleUpdateReminder}
-              onLogQuickRescue={handleLogQuickRescue}
-            />
-          </div>
-        )}
+                {/* Tarjeta de Hábitos y Recordatorio Integrada */}
+                <NonZeroTracker
+                  habit={habit}
+                  onUpdateReminder={handleUpdateReminder}
+                  onLogQuickRescue={handleLogQuickRescue}
+                />
+              </div>
+            )}
 
-        {/* PESTAÑA 2: BIOMETRÍA & FATIGA */}
-        {activeTab === 'biometrics' && (
-          <div className="space-y-8">
-            <BiometricOverview metrics={metrics} />
-          </div>
-        )}
+            {/* PESTAÑA 3: BIOMETRÍA & FATIGA */}
+            {activeTab === 'biometrics' && (
+              <div className="space-y-8">
+                <BiometricOverview metrics={metrics} />
+              </div>
+            )}
 
-        {/* PESTAÑA 3: RUTAS CERCA DE MÍ */}
-        {activeTab === 'routes' && (
-          <div className="space-y-8">
-            <RouteExplorer
-              initialSport={routeSport}
-              initialDistanceKm={routeDistanceKm}
-            />
-          </div>
-        )}
+            {/* PESTAÑA 4: RUTAS CERCA DE MÍ */}
+            {activeTab === 'routes' && (
+              <div className="space-y-8">
+                <RouteExplorer
+                  initialSport={routeSport}
+                  initialDistanceKm={routeDistanceKm}
+                />
+              </div>
+            )}
 
-        {/* PESTAÑA 4: EVENTOS POPULARES & RETOS */}
-        {activeTab === 'events' && (
-          <div className="space-y-8">
-            <EventsExplorer
-              metrics={metrics}
-              onSetTargetEvent={(ev) => setActiveTargetEvent(ev)}
-            />
-          </div>
-        )}
+            {/* PESTAÑA 5: EVENTOS POPULARES & RETOS */}
+            {activeTab === 'events' && (
+              <div className="space-y-8">
+                <EventsExplorer
+                  metrics={metrics}
+                  onSetTargetEvent={(ev) => setActiveTargetEvent(ev)}
+                />
+              </div>
+            )}
 
-        {/* PESTAÑA 5: HISTORIAL ACTIVIDADES */}
-        {activeTab === 'activities' && (
-          <div className="space-y-8">
-            <ActivityFeed activities={activities} />
-          </div>
+            {/* PESTAÑA 6: HISTORIAL ACTIVIDADES */}
+            {activeTab === 'activities' && (
+              <div className="space-y-8">
+                <ActivityFeed activities={activities} />
+              </div>
+            )}
+          </>
         )}
 
       </main>
@@ -220,6 +285,14 @@ export default function Home() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
+        initialMode={authModalMode}
+      />
+
+      {/* Tutorial Guiado de Bienvenida y Onboarding */}
+      <GuidedTutorial
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        userName={currentUser?.name}
       />
 
       {/* Footer Discreto */}

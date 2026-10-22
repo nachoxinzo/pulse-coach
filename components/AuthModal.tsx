@@ -20,11 +20,19 @@ import { UserSessionPayload } from '@/lib/auth';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (user: UserSessionPayload) => void;
+  onSuccess: (user: UserSessionPayload, isNewUser?: boolean) => void;
+  initialMode?: 'login' | 'register';
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }: AuthModalProps) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+
+  // Sincronizar initialMode cuando se abre
+  React.useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -59,7 +67,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         return;
       }
 
-      onSuccess(data.user);
+      onSuccess(data.user, mode === 'register');
       onClose();
     } catch {
       setErrorMessage('Error de red al conectar con el servidor.');
