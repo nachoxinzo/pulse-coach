@@ -59,7 +59,16 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
     try {
       const stored = localStorage.getItem('pulse_user_prs');
       if (stored) {
-        setCustomRecords(JSON.parse(stored));
+        const parsed: PersonalRecordItem[] = JSON.parse(stored);
+        // Sanitizar cualquier registro obsoleto que contuviera la salida de 100km como carrera
+        const cleaned = parsed.map(p => {
+          const t = (p.activityTitle || '').toLowerCase() + ' ' + (p.title || '').toLowerCase();
+          if (t.includes('100km') || t.includes('ciclismo') || t.includes('bici')) {
+            return { ...p, sport: 'cycling' as const, category: 'Mayor Distancia Ciclismo' };
+          }
+          return p;
+        });
+        setCustomRecords(cleaned);
       }
     } catch {
       // Ignorar error de lectura
@@ -75,20 +84,79 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
     }
   };
 
+  // Funciones de guarda para garantizar que el ciclismo nunca se compute como carrera
+  const isCycling = (a: ActivitySession): boolean => {
+    const s = (a.sport || '').toLowerCase();
+    const t = (a.title || '').toLowerCase();
+    if (s === 'cycling' || s === 'mtb') return true;
+    if (
+      t.includes('ciclismo') ||
+      t.includes('bici') ||
+      t.includes('btt') ||
+      t.includes('mtb') ||
+      t.includes('100km') ||
+      t.includes('carretera') ||
+      t.includes('rodillo') ||
+      t.includes('gravel') ||
+      t.includes('cycling')
+    ) {
+      return true;
+    }
+    // Salvaguarda: Más de 40 km a velocidad rápida no es carrera a pie ordinaria
+    if ((a.distanceKm || 0) >= 40) return true;
+    return false;
+  };
+
+  const isRunning = (a: ActivitySession): boolean => {
+    if (isCycling(a)) return false;
+    const s = (a.sport || '').toLowerCase();
+    const t = (a.title || '').toLowerCase();
+    if (s === 'walking' || s === 'hiking' || s === 'strength_mobility' || s === 'cardio' || s === 'swimming') return false;
+    if (
+      t.includes('caminar') ||
+      t.includes('senderismo') ||
+      t.includes('paseo') ||
+      t.includes('fuerza') ||
+      t.includes('elíptica') ||
+      t.includes('gym') ||
+      t.includes('pesas') ||
+      t.includes('inmersión')
+    ) {
+      return false;
+    }
+    // Descartar ritmos sobrehumanos que en realidad son velocidad ciclista en km/h convertida a min/km (ej. 2:25 /km = 25 km/h)
+    if (a.avgPaceOrSpeed && a.avgPaceOrSpeed.includes(':')) {
+      const m = a.avgPaceOrSpeed.match(/(\d+):(\d+)/);
+      if (m) {
+        const sec = parseInt(m[1]) * 60 + parseInt(m[2]);
+        if (sec < 165) return false;
+      }
+    }
+    return s === 'running' || s === 'trail' || t.includes('carrera') || t.includes('trail') || t.includes('rodaje') || t.includes('running');
+  };
+
+  const formatCyclingSpeed = (a: ActivitySession): string => {
+    if (a.avgPaceOrSpeed && a.avgPaceOrSpeed.includes('km/h')) return a.avgPaceOrSpeed;
+    if (a.distanceKm && a.durationMin && a.durationMin > 0) {
+      return `${((a.distanceKm / a.durationMin) * 60).toFixed(1)} km/h`;
+    }
+    return a.avgPaceOrSpeed || '';
+  };
+
   // Calcular automáticamente récords reales a partir del historial de actividades
   const calculatedRecords: PersonalRecordItem[] = React.useMemo(() => {
     const list: PersonalRecordItem[] = [];
     if (!activities || activities.length === 0) return list;
 
-    // 1. Mayor Distancia en Carrera / Trail
-    const runningSessions = activities.filter(a => a.sport === 'running' || a.sport === 'trail');
+    // 1. Mayor Distancia en Carrera / Trail (Excluye terminantemente cualquier salida en bicicleta)
+    const runningSessions = activities.filter(isRunning);
     const runningWithDist = runningSessions.filter(a => (a.distanceKm || 0) > 0);
     if (runningWithDist.length > 0) {
       const longestRun = [...runningWithDist].sort((a, b) => (b.distanceKm || 0) - (a.distanceKm || 0))[0];
       list.push({
         id: `pr-run-longest-${longestRun.id}`,
         category: 'Mayor Distancia Carrera',
-        sport: longestRun.sport as any,
+        sport: longestRun.sport === 'trail' ? 'trail' : 'running',
         iconType: 'crown',
         title: 'Tirada Más Larga a Pie',
         recordValue: `${longestRun.distanceKm} km`,
@@ -99,8 +167,8 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
       });
     }
 
-    // 2. Mayor Distancia en Ciclismo / MTB
-    const cyclingSessions = activities.filter(a => a.sport === 'cycling' || a.sport === 'mtb');
+    // 2. Mayor Distancia en Ciclismo / MTB (Incluye 'primeros 100km' como salida ciclista reina)
+    const cyclingSessions = activities.filter(isCycling);
     const cyclingWithDist = cyclingSessions.filter(a => (a.distanceKm || 0) > 0);
     if (cyclingWithDist.length > 0) {
       const longestRide = [...cyclingWithDist].sort((a, b) => (b.distanceKm || 0) - (a.distanceKm || 0))[0];
@@ -111,7 +179,7 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
         iconType: 'trophy',
         title: 'Salida Más Larga en Bicicleta',
         recordValue: `${longestRide.distanceKm} km`,
-        subValue: `${longestRide.durationMin} min (${longestRide.avgPaceOrSpeed || ''})`,
+        subValue: `${longestRide.durationMin} min (${formatCyclingSpeed(longestRide)})`,
         dateAchieved: longestRide.date,
         activityTitle: longestRide.title,
         badgeLevel: 'oro',
@@ -127,7 +195,7 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
           iconType: 'award',
           title: 'Hito Centurión (+100 Km Bici)',
           recordValue: `${centuryRide.distanceKm} km`,
-          subValue: `${centuryRide.durationMin} min · ${centuryRide.avgPaceOrSpeed || '24.7 km/h'}`,
+          subValue: `${centuryRide.durationMin} min · ${formatCyclingSpeed(centuryRide)}`,
           dateAchieved: centuryRide.date,
           activityTitle: centuryRide.title,
           badgeLevel: 'oro',
@@ -144,7 +212,7 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
           iconType: 'trophy',
           title: 'Medio Fondo (+50 Km Bici)',
           recordValue: `${halfCentury.distanceKm} km`,
-          subValue: `${halfCentury.durationMin} min · ${halfCentury.avgPaceOrSpeed || ''}`,
+          subValue: `${halfCentury.durationMin} min · ${formatCyclingSpeed(halfCentury)}`,
           dateAchieved: halfCentury.date,
           activityTitle: halfCentury.title,
           badgeLevel: 'plata',
@@ -152,14 +220,21 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
       }
     }
 
-    // 3. Mayor Desnivel Positivo (+D) Acumulado
-    const sessionsWithEle = activities.filter(a => (a.elevationGainM || 0) > 0);
+    // 3. Mayor Desnivel Positivo (+D) Acumulado (excluyendo actividades submarinas/apnea por variación barométrica)
+    const isLandActivity = (a: ActivitySession) => {
+      const t = (a.title || '').toLowerCase();
+      const s = (a.sport || '').toLowerCase();
+      if (s === 'swimming' || t.includes('apnea') || t.includes('inmersi') || t.includes('buceo')) return false;
+      return true;
+    };
+    const sessionsWithEle = activities.filter(a => (a.elevationGainM || 0) > 0 && isLandActivity(a));
     if (sessionsWithEle.length > 0) {
       const maxEleActivity = [...sessionsWithEle].sort((a, b) => (b.elevationGainM || 0) - (a.elevationGainM || 0))[0];
+      const eleSport: 'cycling' | 'running' = isCycling(maxEleActivity) ? 'cycling' : 'running';
       list.push({
         id: `pr-elevation-${maxEleActivity.id}`,
         category: 'Mayor Desnivel (+D)',
-        sport: maxEleActivity.sport as any,
+        sport: eleSport,
         iconType: 'mountain',
         title: 'Pico de Desnivel en una Sesión',
         recordValue: `+${maxEleActivity.elevationGainM} m`,
@@ -170,22 +245,25 @@ export function PersonalRecords({ activities = [] }: PersonalRecordsProps) {
       });
     }
 
-    // 4. Mejor Ritmo Medio Registrado
+    // 4. Mejor Ritmo Medio Registrado (Exclusivo de carrera real a pie)
     const runningWithPace = runningSessions.filter(a => a.avgPaceOrSpeed && a.avgPaceOrSpeed.includes(':'));
     if (runningWithPace.length > 0) {
-      // Ordenar por ritmo más rápido
       const parsePace = (p?: string) => {
         if (!p) return 9999;
         const match = p.match(/(\d+):(\d+)/);
         if (!match) return 9999;
-        return parseInt(match[1]) * 60 + parseInt(match[2]);
+        const sec = parseInt(match[1]) * 60 + parseInt(match[2]);
+        // Ritmo mínimo biológicamente realista para distancia en carrera (2:45 /km = 165s)
+        if (sec < 165) return 9999;
+        return sec;
       };
-      const fastestRun = [...runningWithPace].sort((a, b) => parsePace(a.avgPaceOrSpeed) - parsePace(b.avgPaceOrSpeed))[0];
-      if (parsePace(fastestRun.avgPaceOrSpeed) < 9999) {
+      const validRuns = runningWithPace.filter(a => parsePace(a.avgPaceOrSpeed) < 9999);
+      if (validRuns.length > 0) {
+        const fastestRun = [...validRuns].sort((a, b) => parsePace(a.avgPaceOrSpeed) - parsePace(b.avgPaceOrSpeed))[0];
         list.push({
           id: `pr-fastest-pace-${fastestRun.id}`,
           category: 'Mejor Ritmo Registrado',
-          sport: fastestRun.sport as any,
+          sport: fastestRun.sport === 'trail' ? 'trail' : 'running',
           iconType: 'flame',
           title: 'Ritmo Medio Más Rápido',
           recordValue: fastestRun.avgPaceOrSpeed || '',

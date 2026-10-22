@@ -52,6 +52,9 @@ export default function Home() {
           if (data.metrics) setMetrics(data.metrics);
           if (data.activities) setActivities(data.activities);
           if (data.habit) setHabit(data.habit);
+        } else if (data.activities && data.activities.length > 0) {
+          setActivities(data.activities);
+          if (data.metrics) setMetrics(data.metrics);
         }
       }
     } catch (err) {

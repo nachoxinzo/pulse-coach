@@ -20,10 +20,19 @@ export async function GET() {
       const { getGarminClient, mapGarminSport } = await import('@/lib/garmin-sync');
       const garmin = await getGarminClient();
       if (garmin) {
-        const rawActivities = await garmin.getActivities(0, 15);
+        const rawActivities = await garmin.getActivities(0, 50);
         if (rawActivities && rawActivities.length > 0) {
           const realActs = rawActivities.map((a: any) => {
             const sport = mapGarminSport(a.activityType?.typeKey, a.activityName);
+            let avgPaceOrSpeed: string | undefined = undefined;
+            if (a.averageSpeed && a.averageSpeed > 0) {
+              if (sport === 'cycling' || sport === 'mtb') {
+                avgPaceOrSpeed = `${(a.averageSpeed * 3.6).toFixed(1)} km/h`;
+              } else {
+                const sec = 1000 / a.averageSpeed;
+                avgPaceOrSpeed = `${Math.floor(sec / 60)}:${Math.floor(sec % 60).toString().padStart(2, '0')} /km`;
+              }
+            }
             return {
               id: `garmin-${a.activityId}`,
               source: 'garmin' as const,
@@ -36,7 +45,7 @@ export async function GET() {
               maxHr: a.maxHR || 165,
               calories: a.calories || 0,
               elevationGainM: a.elevationGain ? Math.round(a.elevationGain) : undefined,
-              avgPaceOrSpeed: a.averageSpeed ? `${(a.averageSpeed * 3.6).toFixed(1)} km/h` : undefined,
+              avgPaceOrSpeed,
             };
           });
 

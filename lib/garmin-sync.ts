@@ -73,16 +73,52 @@ export function mapGarminSport(typeKey?: string, activityName?: string): SportTy
   const key = (typeKey || '').toLowerCase();
   const name = (activityName || '').toLowerCase();
 
+  // 1. Ciclismo de montaña / BTT
   if (key.includes('mountain') || key.includes('mtb') || name.includes('btt') || name.includes('mtb') || name.includes('ciclismo de montaña')) return 'mtb';
-  if (key.includes('gravel')) return 'cycling';
-  if (key.includes('bike') || key.includes('biking') || key.includes('cycling') || name.includes('ciclismo')) return 'cycling';
+  
+  // 2. Ciclismo de carretera / Gravel / Virtual / Rodillo o actividades de bici (incluyendo 100km)
+  if (
+    key.includes('road_biking') ||
+    key.includes('biking') || 
+    key.includes('bike') || 
+    key.includes('cycling') || 
+    key.includes('gravel') || 
+    name.includes('ciclismo') ||
+    name.includes('bici') ||
+    name.includes('carretera') ||
+    name.includes('rodillo') ||
+    name.includes('100km')
+  ) {
+    return 'cycling';
+  }
+
+  // 3. Senderismo / Caminar
   if (key.includes('hike') || key.includes('hiking') || name.includes('senderismo')) return 'hiking';
-  if (key.includes('trail') || name.includes('trail')) return 'trail';
   if (key.includes('walk') || key.includes('walking') || name.includes('caminata') || name.includes('paseo') || name.includes('caminar')) return 'walking';
-  if (key.includes('swim') || name.includes('natación') || name.includes('nadar')) return 'swimming';
-  if (key.includes('run') || name.includes('carrera') || name.includes('running')) return 'running';
+  
+  // 4. Natación / Actividades acuáticas / Buceo / Apnea
+  if (
+    key.includes('swim') || 
+    key.includes('diving') || 
+    key.includes('dive') || 
+    key.includes('apnea') || 
+    name.includes('natación') || 
+    name.includes('nadar') || 
+    name.includes('apnea') || 
+    name.includes('inmersión') || 
+    name.includes('buceo')
+  ) {
+    return 'swimming';
+  }
+  
+  // 5. Trail / Carrera
+  if (key.includes('trail') || name.includes('trail')) return 'trail';
+  if (key.includes('run') || name.includes('carrera') || name.includes('running') || name.includes('rodaje')) return 'running';
+  
+  // 6. Gimnasio / Fuerza / Crossfit
   if (key.includes('strength') || name.includes('fuerza') || name.includes('pesas') || key.includes('crossfit') || name.includes('crossfit') || name.includes('gimnasio')) return 'strength_mobility';
   if (key.includes('cardio') || key.includes('fitness') || key.includes('elliptical') || name.includes('elíptica')) return 'cardio';
+  
   return 'running';
 }
 
@@ -121,8 +157,8 @@ export async function syncRealGarminData(userId: string): Promise<{
   const db = getDb();
   const today = new Date();
 
-  // 1. OBTENER ACTIVIDADES REALES
-  const rawActivities = await garmin.getActivities(0, 25).catch((err) => {
+  // 1. OBTENER ACTIVIDADES REALES (hasta 50 actividades recientes)
+  const rawActivities = await garmin.getActivities(0, 50).catch((err) => {
     console.warn('Error obteniendo actividades de Garmin:', err);
     return [];
   });
