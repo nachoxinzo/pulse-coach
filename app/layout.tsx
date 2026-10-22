@@ -2,9 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Pulse Coach | Garmin & Strava AI Hub',
-  description: 'Analítica biométrica avanzada, coach adaptativo diario según tu estado y generador de rutas circulares cerca de ti.',
+  title: 'Pulse Coach | EvoLab Multisport Hub',
+  description: 'Analítica biométrica avanzada estilo COROS EvoLab, coach adaptativo diario según tu estado y generador de rutas circulares con tracks GPX.',
   applicationName: 'Pulse Coach',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

@@ -16,13 +16,14 @@ import {
   User,
   LogOut,
   Smartphone,
-  Radio
+  Radio,
+  LayoutDashboard
 } from 'lucide-react';
 import { UserSessionPayload } from '@/lib/auth';
 
 interface NavbarProps {
-  activeTab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities';
-  onSelectTab: (tab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
+  activeTab: 'dashboard' | 'coach' | 'biometrics' | 'routes' | 'events' | 'activities';
+  onSelectTab: (tab: 'dashboard' | 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
   streakDays: number;
   todayCompleted: boolean;
   onOpenSync: () => void;
@@ -44,14 +45,15 @@ export function Navbar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { id: 'coach', label: 'Coach Diario', icon: Flame },
-    { id: 'biometrics', label: 'Biometría & Fatiga', icon: HeartPulse },
-    { id: 'routes', label: 'Rutas Cerca de Mí', icon: Compass },
-    { id: 'events', label: 'Eventos Populares', icon: Trophy },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'coach', label: 'Coach', icon: Flame },
+    { id: 'biometrics', label: 'EvoLab', icon: HeartPulse },
+    { id: 'routes', label: 'Rutas', icon: Compass },
+    { id: 'events', label: 'Eventos', icon: Trophy },
     { id: 'activities', label: 'Historial', icon: Activity },
   ] as const;
 
-  const handleSelect = (tab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => {
+  const handleSelect = (tab: 'dashboard' | 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => {
     onSelectTab(tab);
     setMobileMenuOpen(false);
   };
@@ -65,20 +67,26 @@ export function Navbar({
             {/* Logo & Marca */}
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => handleSelect('coach')}
+                onClick={() => handleSelect('dashboard')}
                 className="flex items-center gap-2.5 text-left focus:outline-hidden"
               >
-                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs">
-                  <HeartPulse className="w-5 h-5 text-indigo-400 stroke-[2]" />
+                <div className="w-10 h-10 rounded-xl bg-slate-950 border border-cyan-500/30 flex items-center justify-center p-1 shadow-[0_0_12px_rgba(6,182,212,0.25)] shrink-0 overflow-hidden">
+                  <img 
+                    src="/logo.png" 
+                    alt="Pulse Coach Logo" 
+                    className="w-full h-full object-contain filter drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]" 
+                  />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-lg tracking-tight text-slate-900">Pulse Coach</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-                      Garmin + Strava
+                    <span className="font-black text-lg tracking-tight text-slate-900">
+                      Pulse Coach
+                    </span>
+                    <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-cyan-50 text-cyan-800 border border-cyan-200">
+                      EvoLab
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium hidden sm:block">Biometría Adaptativa & Rutas</p>
+                  <p className="text-[11px] text-slate-500 font-medium hidden sm:block">Inteligencia Deportiva & Rutas</p>
                 </div>
               </button>
             </div>

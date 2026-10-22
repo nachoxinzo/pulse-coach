@@ -10,12 +10,13 @@ import { EventsExplorer } from '@/components/EventsExplorer';
 import { ActivityFeed } from '@/components/ActivityFeed';
 import { SyncModal } from '@/components/SyncModal';
 import { AuthModal } from '@/components/AuthModal';
+import { CorosDashboard } from '@/components/CorosDashboard';
 import { UserSessionPayload } from '@/lib/auth';
 import { INITIAL_BIOMETRICS, INITIAL_NON_ZERO_HABIT, RECENT_ACTIVITIES } from '@/lib/mock-data';
 import { SportType, NonZeroHabit, BiometricMetrics, ActivitySession, PopularEvent } from '@/types';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'coach' | 'biometrics' | 'routes' | 'events' | 'activities'>('coach');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'coach' | 'biometrics' | 'routes' | 'events' | 'activities'>('dashboard');
   const [metrics, setMetrics] = useState<BiometricMetrics>(INITIAL_BIOMETRICS);
   const [habit, setHabit] = useState<NonZeroHabit>(INITIAL_NON_ZERO_HABIT);
   const [activities, setActivities] = useState<ActivitySession[]>(RECENT_ACTIVITIES);
@@ -141,7 +142,17 @@ export default function Home() {
       {/* Contenido Principal */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
         
-        {/* PESTAÑA 1: COACH DIARIO */}
+        {/* PESTAÑA PRINCIPAL: DASHBOARD RESUMEN ESTILO COROS EVOLAB */}
+        {activeTab === 'dashboard' && (
+          <CorosDashboard
+            metrics={metrics}
+            activities={activities}
+            habit={habit}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+          />
+        )}
+
+        {/* PESTAÑA 2: COACH DIARIO */}
         {activeTab === 'coach' && (
           <div className="space-y-8">
             <DailyCoachSection
