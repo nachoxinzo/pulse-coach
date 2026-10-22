@@ -563,7 +563,7 @@ export function CorosDashboard({
       {/* ============================================================== */}
       {/* 5. CLUB PULSE COACH & RETOS DE GRUPO */}
       {/* ============================================================== */}
-      <ClubLeaderboard currentUser={currentUser} />
+      <ClubLeaderboard currentUser={currentUser} activities={activities} />
 
     </div>
   );

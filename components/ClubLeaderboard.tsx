@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trophy, 
   Users, 
@@ -15,9 +15,13 @@ import {
   TrendingUp, 
   Watch, 
   Radio, 
-  Copy 
+  Copy,
+  Plus,
+  X,
+  UserPlus
 } from 'lucide-react';
 import { UserSessionPayload } from '@/lib/auth';
+import { ActivitySession } from '@/types';
 
 export interface ClubMember {
   id: string;
@@ -28,88 +32,118 @@ export interface ClubMember {
   weeklyKm: number;
   weeklyElevationM: number;
   streakDays: number;
-  challengeProgressPct: number;
   isCurrentUser?: boolean;
 }
 
 interface ClubLeaderboardProps {
   currentUser?: UserSessionPayload | null;
+  activities?: ActivitySession[];
 }
 
-const INITIAL_MEMBERS: ClubMember[] = [
-  {
-    id: 'm-1',
-    name: 'Nacho (Tú)',
-    avatarInitials: 'NA',
-    primaryDevice: 'Garmin Forerunner 965',
-    deviceBrand: 'garmin',
-    weeklyKm: 42.6,
-    weeklyElevationM: 480,
-    streakDays: 12,
-    challengeProgressPct: 85,
-    isCurrentUser: true,
-  },
-  {
-    id: 'm-2',
-    name: 'Carlos M. (Limia BTT)',
-    avatarInitials: 'CM',
-    primaryDevice: 'iGPSPORT BSC200',
-    deviceBrand: 'igpsport',
-    weeklyKm: 68.4,
-    weeklyElevationM: 920,
-    streakDays: 8,
-    challengeProgressPct: 92,
-  },
-  {
-    id: 'm-3',
-    name: 'Ana R. (Trail Ourense)',
-    avatarInitials: 'AR',
-    primaryDevice: 'COROS Pace 3',
-    deviceBrand: 'coros',
-    weeklyKm: 38.2,
-    weeklyElevationM: 710,
-    streakDays: 14,
-    challengeProgressPct: 76,
-  },
-  {
-    id: 'm-4',
-    name: 'David F. (Xinzo Runners)',
-    avatarInitials: 'DF',
-    primaryDevice: 'COROS Apex 2 Pro',
-    deviceBrand: 'coros',
-    weeklyKm: 31.5,
-    weeklyElevationM: 220,
-    streakDays: 5,
-    challengeProgressPct: 63,
-  },
-  {
-    id: 'm-5',
-    name: 'Marcos V. (Gravel Galicia)',
-    avatarInitials: 'MV',
-    primaryDevice: 'iGPSPORT iGS630',
-    deviceBrand: 'igpsport',
-    weeklyKm: 54.0,
-    weeklyElevationM: 640,
-    streakDays: 9,
-    challengeProgressPct: 72,
-  },
-];
-
-export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
+export function ClubLeaderboard({ currentUser, activities = [] }: ClubLeaderboardProps) {
   const [rankingMode, setRankingMode] = useState<'km' | 'elevation' | 'streak'>('km');
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [customMembers, setCustomMembers] = useState<ClubMember[]>([]);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+
+  // Formulario para añadir compañero de grupeta real
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberDevice, setNewMemberDevice] = useState('Garmin');
+  const [newMemberBrand, setNewMemberBrand] = useState<'garmin' | 'coros' | 'igpsport' | 'strava'>('garmin');
+  const [newMemberKm, setNewMemberKm] = useState('');
+  const [newMemberEle, setNewMemberEle] = useState('');
+
+  // Cargar miembros reales almacenados localmente
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pulse_club_members');
+      if (stored) {
+        const parsed: ClubMember[] = JSON.parse(stored);
+        // Filtrar antiguos miembros ficticios para garantizar que solo haya datos reales
+        const realMembers = parsed.filter(m => !['m-2', 'm-3', 'm-4', 'm-5'].includes(m.id));
+        setCustomMembers(realMembers);
+        if (realMembers.length !== parsed.length) {
+          localStorage.setItem('pulse_club_members', JSON.stringify(realMembers));
+        }
+      }
+    } catch {
+      // Ignorar error de lectura
+    }
+  }, []);
+
+  const saveMembers = (updated: ClubMember[]) => {
+    setCustomMembers(updated);
+    try {
+      localStorage.setItem('pulse_club_members', JSON.stringify(updated));
+    } catch {
+      // Fallback
+    }
+  };
+
+  // Calcular métricas reales del usuario actual desde sus actividades
+  const userWeeklyKm = Number(activities.reduce((acc, a) => acc + (a.distanceKm || 0), 0).toFixed(1));
+  const userWeeklyEle = activities.reduce((acc, a) => acc + (a.elevationGainM || 0), 0);
+
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase() || 'TU';
+  };
+
+  const currentMember: ClubMember = {
+    id: currentUser?.userId || 'current-user',
+    name: currentUser?.name ? `${currentUser.name} (Tú)` : 'Mi Perfil (Tú)',
+    avatarInitials: getInitials(currentUser?.name || 'Tú'),
+    primaryDevice: currentUser?.primaryDevice ? `Dispositivo ${currentUser.primaryDevice.toUpperCase()}` : 'Garmin / Strava',
+    deviceBrand: (currentUser?.primaryDevice as any) || 'garmin',
+    weeklyKm: userWeeklyKm,
+    weeklyElevationM: userWeeklyEle,
+    streakDays: activities.length > 0 ? activities.length : 1,
+    isCurrentUser: true,
+  };
+
+  // Lista de miembros totales del club (Usuario actual + compañeros reales que se unan)
+  const allMembers: ClubMember[] = [currentMember, ...customMembers];
 
   // Ordenar según métrica elegida
-  const sortedMembers = [...INITIAL_MEMBERS].sort((a, b) => {
+  const sortedMembers = [...allMembers].sort((a, b) => {
     if (rankingMode === 'km') return b.weeklyKm - a.weeklyKm;
     if (rankingMode === 'elevation') return b.weeklyElevationM - a.weeklyElevationM;
     return b.streakDays - a.streakDays;
   });
 
   const handleCopyInvite = () => {
-    navigator.clipboard?.writeText(window.location.origin + '?club=amigos-pulse-coach');
-    setCopiedInvite(true);
-    setTimeout(() => setCopiedInvite(false), 4000);
+    if (typeof window !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(`${window.location.origin}?club=grupeta-amigos`);
+      setCopiedInvite(true);
+      setTimeout(() => setCopiedInvite(false), 4000);
+    }
+  };
+
+  const handleAddMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberName.trim()) return;
+
+    const km = parseFloat(newMemberKm) || 0;
+    const ele = parseInt(newMemberEle) || 0;
+
+    const newMember: ClubMember = {
+      id: `member-${Date.now()}`,
+      name: newMemberName.trim(),
+      avatarInitials: getInitials(newMemberName.trim()),
+      primaryDevice: newMemberDevice.trim() || 'Dispositivo GPS',
+      deviceBrand: newMemberBrand,
+      weeklyKm: km,
+      weeklyElevationM: ele,
+      streakDays: 1,
+      isCurrentUser: false,
+    };
+
+    saveMembers([...customMembers, newMember]);
+    setIsAddMemberModalOpen(false);
+    setNewMemberName('');
+    setNewMemberKm('');
+    setNewMemberEle('');
   };
 
   const getBrandBadge = (brand: string) => {
@@ -125,6 +159,10 @@ export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
     }
   };
 
+  const totalClubKm = Number(allMembers.reduce((acc, m) => acc + m.weeklyKm, 0).toFixed(1));
+  const clubGoalKm = Math.max(100, Math.ceil(totalClubKm / 50) * 50);
+  const clubProgressPct = Math.min(100, Math.round((totalClubKm / clubGoalKm) * 100));
+
   return (
     <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 shadow-sm space-y-4">
       
@@ -137,28 +175,38 @@ export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
               Club Amistoso Pulse Coach
             </span>
             <span className="text-xs text-slate-500 tabular-nums">
-              5 miembros activos esta semana
+              {allMembers.length} {allMembers.length === 1 ? 'miembro' : 'miembros'} esta semana
             </span>
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1">
             Clasificación & Retos de Grupo
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Compara tus entrenamientos con tus amigos tengan COROS, iGPSPORT o Garmin sin suscripciones de pago.
+            Compara tus entrenamientos con tus compañeros de grupeta sin suscripciones de pago.
           </p>
         </div>
 
-        {/* Botón Invitar Amigo */}
-        <button
-          onClick={handleCopyInvite}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all self-start sm:self-auto touch-target"
-        >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>{copiedInvite ? '¡Enlace copiado!' : 'Invitar Amigo al Club'}</span>
-        </button>
+        {/* Acciones */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setIsAddMemberModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black transition-all active:scale-[0.98] shadow-xs touch-target"
+          >
+            <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Añadir Compañero</span>
+          </button>
+
+          <button
+            onClick={handleCopyInvite}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all touch-target"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{copiedInvite ? 'Enlace copiado' : 'Invitar Amigo'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Reto Semanal Activo del Club */}
+      {/* Reto Semanal del Club con Kilómetros Reales */}
       <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-slate-50 to-cyan-500/10 dark:from-amber-950/30 dark:via-slate-900 dark:to-cyan-950/30 border border-amber-200/80 dark:border-amber-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -166,24 +214,40 @@ export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
           </div>
           <div>
             <span className="font-bold text-slate-900 dark:text-white block">
-              Reto Semanal de Otoño: 250 Km en Grupo
+              Reto Semanal de Grupeta: Objetivo {clubGoalKm} Km
             </span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Objetivo común: sumar kilómetros en bici o carrera entre todos los miembros.
+              Suma de kilómetros acumulados por los miembros del club esta semana.
             </span>
           </div>
         </div>
 
         <div className="w-full sm:w-48 space-y-1">
           <div className="flex justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-            <span>234.7 / 250 km</span>
-            <span className="text-amber-600 dark:text-amber-400">94%</span>
+            <span>{totalClubKm} / {clubGoalKm} km</span>
+            <span className="text-amber-600 dark:text-amber-400">{clubProgressPct}%</span>
           </div>
           <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-            <div className="bg-gradient-to-r from-amber-500 to-cyan-500 h-full rounded-full" style={{ width: '94%' }} />
+            <div className="bg-gradient-to-r from-amber-500 to-cyan-500 h-full rounded-full" style={{ width: `${clubProgressPct}%` }} />
           </div>
         </div>
       </div>
+
+      {/* Aviso si solo está el usuario */}
+      {customMembers.length === 0 && (
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+            <Users className="w-4 h-4 text-cyan-500 shrink-0" />
+            <span>Eres el único miembro en el club por ahora. Invita a tus amigos o añade a tus compañeros de salida para competir sanamente.</span>
+          </div>
+          <button
+            onClick={handleCopyInvite}
+            className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 hover:underline shrink-0"
+          >
+            Copiar invitación
+          </button>
+        </div>
+      )}
 
       {/* Selector de Criterio de Ranking */}
       <div className="flex items-center gap-1.5 text-xs font-bold">
@@ -218,7 +282,7 @@ export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
           }`}
         >
-          Días de Racha
+          Racha de Días
         </button>
       </div>
 
@@ -248,51 +312,53 @@ export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
                 >
-                  <td className="py-3 pr-2">
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      isFirst 
-                        ? 'bg-amber-400 text-slate-950 shadow-xs' 
-                        : idx === 1 
-                        ? 'bg-slate-300 text-slate-800' 
-                        : idx === 2 
-                        ? 'bg-amber-700/60 text-white' 
-                        : 'text-slate-400'
-                    }`}>
-                      {idx + 1}
-                    </span>
+                  <td className="py-3 pr-2 font-black text-slate-400">
+                    {isFirst ? (
+                      <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center text-[10px]">
+                        1
+                      </span>
+                    ) : (
+                      idx + 1
+                    )}
                   </td>
 
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                        member.isCurrentUser
+                          ? 'bg-cyan-500 text-slate-950'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                      }`}>
                         {member.avatarInitials}
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span>{member.name}</span>
-                          <span className={`text-[9px] uppercase px-1.5 py-0.2 rounded border font-bold ${brand.bg}`}>
+                        <span className="font-bold text-slate-900 dark:text-white block">
+                          {member.name}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${brand.bg}`}>
                             {brand.label}
                           </span>
+                          <span className="text-[10px] text-slate-400">
+                            {member.primaryDevice}
+                          </span>
                         </div>
-                        <span className="text-[11px] text-slate-400 block font-normal">
-                          {member.primaryDevice}
-                        </span>
                       </div>
                     </div>
                   </td>
 
-                  <td className="py-3 px-3 font-bold text-slate-900 dark:text-white text-sm">
+                  <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">
                     {member.weeklyKm} km
                   </td>
 
-                  <td className="py-3 px-3 text-emerald-600 dark:text-emerald-400 font-bold">
+                  <td className="py-3 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">
                     +{member.weeklyElevationM} m
                   </td>
 
                   <td className="py-3 pl-3 text-right">
-                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                      <Flame className="w-3.5 h-3.5 stroke-[2.2]" />
-                      {member.streakDays} días
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <Flame className="w-3 h-3 text-emerald-600" />
+                      {member.streakDays}d
                     </span>
                   </td>
                 </tr>
@@ -301,6 +367,92 @@ export function ClubLeaderboard({ currentUser }: ClubLeaderboardProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Modal para añadir compañero real */}
+      {isAddMemberModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Añadir Compañero de Grupeta</h3>
+              <button onClick={() => setIsAddMemberModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMember} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre o Apodo</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Roberto o Laura"
+                  value={newMemberName}
+                  onChange={e => setNewMemberName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Plataforma / Reloj</label>
+                <select
+                  value={newMemberBrand}
+                  onChange={e => {
+                    const b = e.target.value as any;
+                    setNewMemberBrand(b);
+                    setNewMemberDevice(b === 'garmin' ? 'Garmin Edge / Forerunner' : b === 'coros' ? 'COROS Pace' : b === 'igpsport' ? 'iGPSPORT BSC' : 'Strava App');
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                >
+                  <option value="garmin">Garmin</option>
+                  <option value="coros">COROS</option>
+                  <option value="igpsport">iGPSPORT</option>
+                  <option value="strava">Strava</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Km Semanales</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="Ej. 35.5"
+                    value={newMemberKm}
+                    onChange={e => setNewMemberKm(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white tabular-nums"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Desnivel (+m)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej. 420"
+                    value={newMemberEle}
+                    onChange={e => setNewMemberEle(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white tabular-nums"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddMemberModalOpen(false)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black shadow-xs"
+                >
+                  Añadir al Club
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
