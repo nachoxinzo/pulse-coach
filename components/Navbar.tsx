@@ -17,7 +17,8 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Award
 } from 'lucide-react';
 import { UserSessionPayload } from '@/lib/auth';
 
@@ -31,6 +32,7 @@ interface NavbarProps {
   onOpenAuth?: (mode?: 'login' | 'register') => void;
   onLogout?: () => void;
   onOpenTutorial?: () => void;
+  onOpenReport?: () => void;
 }
 
 export function Navbar({
@@ -43,6 +45,7 @@ export function Navbar({
   onOpenAuth,
   onLogout,
   onOpenTutorial,
+  onOpenReport,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'system' | 'dark' | 'light'>('system');
@@ -234,6 +237,18 @@ export function Navbar({
                 >
                   <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Guía</span>
+                </button>
+              )}
+
+              {/* Botón Informe Ejecutivo PDF (Desktop) */}
+              {onOpenReport && (
+                <button
+                  onClick={onOpenReport}
+                  className="hidden xl:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-cyan-200 dark:border-cyan-800/80 bg-cyan-50/50 dark:bg-cyan-950/40 text-cyan-900 dark:text-cyan-300 hover:bg-cyan-100 text-xs font-bold shadow-2xs transition-all active:scale-[0.98] touch-target"
+                  title="Generar Certificado e Informe Ejecutivo PDF"
+                >
+                  <Award className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 stroke-[2]" />
+                  <span>Informe PDF</span>
                 </button>
               )}
 
@@ -466,6 +481,19 @@ export function Navbar({
                 >
                   <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   <span>Ver Tutorial Guiado</span>
+                </button>
+              )}
+
+              {onOpenReport && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenReport();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-bold touch-target"
+                >
+                  <Award className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                  <span>Informe Ejecutivo PDF</span>
                 </button>
               )}
             </div>

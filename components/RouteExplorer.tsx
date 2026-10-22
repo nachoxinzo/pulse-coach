@@ -32,6 +32,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { DeviceSyncModal } from './DeviceSyncModal';
+import { RouteWeatherWidget } from './RouteWeatherWidget';
 
 const RouteMap = dynamic(() => import('./RouteMap'), {
   ssr: false,
@@ -697,6 +698,16 @@ export function RouteExplorer({
           <span className="text-[10px] uppercase font-bold text-emerald-800 bg-white px-2.5 py-0.5 rounded-md border border-emerald-200">
             {sport === 'mtb' ? 'Modo BTT / MTB' : sport === 'trail' ? 'Modo Trail Running' : sport === 'cycling' ? 'Modo Ciclismo Carretera' : 'Vía Activa'}
           </span>
+        </div>
+
+        {/* Widget Meteorológico y Viento en Tiempo Real */}
+        <div className="p-4 pb-0">
+          <RouteWeatherWidget
+            lat={userLocation.lat}
+            lng={userLocation.lng}
+            locationName={locationLabel}
+            sport={sport}
+          />
         </div>
 
         {/* Mapa Leaflet Multi-capa con Overlay Waymarked Trails */}

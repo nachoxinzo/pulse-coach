@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { DeviceSyncModal } from './DeviceSyncModal';
 import { GpxToolModal } from './GpxToolModal';
+import { FuelingCalculatorModal } from './FuelingCalculatorModal';
 import { PopularEvent, SportType, BiometricMetrics } from '@/types';
 import { POPULAR_EVENTS_DATABASE } from '@/lib/events-database';
 import { shareTrackToDevice } from '@/lib/device-share';
@@ -61,6 +62,7 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
   const [sendingGarminId, setSendingGarminId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [syncModalEvent, setSyncModalEvent] = useState<PopularEvent | null>(null);
+  const [fuelingEvent, setFuelingEvent] = useState<PopularEvent | null>(null);
   const [isGpxToolOpen, setIsGpxToolOpen] = useState(false);
 
   // Filtrado reactivo de eventos
@@ -572,6 +574,16 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                       </a>
                     )}
 
+                    {/* Calculadora de Nutrición & Geles */}
+                    <button
+                      onClick={() => setFuelingEvent(event)}
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800 transition-all touch-target"
+                      title="Calcular geles, carbohidratos e hidratación para esta carrera"
+                    >
+                      <Flame className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>Geles & Nutrición</span>
+                    </button>
+
                     {/* Ver Mapa */}
                     <button
                       onClick={() => setPreviewEventId(isPreviewOpen ? null : event.id)}
@@ -648,6 +660,18 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
           coordinates={syncModalEvent.coordinates}
           elevationProfile={syncModalEvent.elevationProfile}
           onGarminSent={(msg) => setStatusMessage(msg)}
+        />
+      )}
+
+      {/* Modal de Calculadora de Nutrición, Hidratación & Geles */}
+      {fuelingEvent && (
+        <FuelingCalculatorModal
+          isOpen={true}
+          onClose={() => setFuelingEvent(null)}
+          eventTitle={fuelingEvent.name}
+          defaultSport={fuelingEvent.sport}
+          defaultDistanceKm={fuelingEvent.officialDistanceKm}
+          defaultDurationMin={fuelingEvent.sport === 'mtb' ? 150 : fuelingEvent.sport === 'cycling' ? 180 : 90}
         />
       )}
 

@@ -13,6 +13,7 @@ import { AuthModal } from '@/components/AuthModal';
 import { CorosDashboard } from '@/components/CorosDashboard';
 import { WelcomeHero } from '@/components/WelcomeHero';
 import { GuidedTutorial } from '@/components/GuidedTutorial';
+import { PerformanceReportModal } from '@/components/PerformanceReportModal';
 import { UserSessionPayload } from '@/lib/auth';
 import { INITIAL_BIOMETRICS, INITIAL_NON_ZERO_HABIT, RECENT_ACTIVITIES } from '@/lib/mock-data';
 import { SportType, NonZeroHabit, BiometricMetrics, ActivitySession, PopularEvent } from '@/types';
@@ -38,6 +39,7 @@ export default function Home() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Cargar datos del usuario autenticado desde el servidor
   const loadUserData = async () => {
@@ -167,6 +169,7 @@ export default function Home() {
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
         onOpenTutorial={() => setIsTutorialOpen(true)}
+        onOpenReport={() => setIsReportModalOpen(true)}
       />
 
       {/* Banner de Aviso en Modo Demo */}
@@ -219,6 +222,7 @@ export default function Home() {
                 habit={habit}
                 onNavigateTab={(tab) => setActiveTab(tab)}
                 onOpenSync={handleOpenSync}
+                currentUser={currentUser}
               />
             )}
 
@@ -301,6 +305,16 @@ export default function Home() {
         isOpen={isTutorialOpen}
         onClose={() => setIsTutorialOpen(false)}
         userName={currentUser?.name}
+      />
+
+      {/* Informe Ejecutivo de Rendimiento Imprimible / PDF */}
+      <PerformanceReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        metrics={metrics}
+        activities={activities}
+        habit={habit}
+        currentUser={currentUser}
       />
 
       {/* Footer Discreto */}

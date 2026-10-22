@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { BiometricMetrics, DailyWorkoutPlan, SportType } from '@/types';
 import { generateDailyPlans, calculateReadinessVerdict } from '@/lib/coach-engine';
+import { downloadStructuredWorkout } from '@/lib/workout-export';
+import { WeeklyTrainingPlanner } from './WeeklyTrainingPlanner';
 import { 
   Flame, 
   Clock, 
@@ -15,7 +17,10 @@ import {
   Compass, 
   ChevronRight, 
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Calendar,
+  Watch
 } from 'lucide-react';
 
 interface DailyCoachSectionProps {
@@ -36,6 +41,8 @@ export function DailyCoachSection({
   const [selectedTimeMin, setSelectedTimeMin] = useState<number>(45);
   const [selectedSport, setSelectedSport] = useState<SportType | 'all'>('all');
   const [activePlanId, setActivePlanId] = useState<string>('');
+  const [coachView, setCoachView] = useState<'today' | 'weekly'>('today');
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   const verdict = useMemo(() => calculateReadinessVerdict(metrics), [metrics]);
 
@@ -44,6 +51,12 @@ export function DailyCoachSection({
   }, [metrics, selectedTimeMin, selectedSport]);
 
   const currentPlan = plans.find((p) => p.id === activePlanId) || plans[0];
+
+  const handleExportWorkout = (plan: DailyWorkoutPlan) => {
+    downloadStructuredWorkout(plan);
+    setExportNotice(`¡Entrenamiento "${plan.title}" descargado en formato estructurado! Puedes importarlo en Garmin Connect (Entrenamientos) o COROS Training Hub.`);
+    setTimeout(() => setExportNotice(null), 6000);
+  };
 
   const timeOptions = [15, 30, 45, 60, 90];
   const sportOptions: { id: SportType | 'all'; label: string; icon: React.ElementType }[] = [
@@ -98,7 +111,61 @@ export function DailyCoachSection({
         </div>
       </div>
 
-      {/* Si ya se completó el entreno hoy, mensaje de éxito */}
+      {/* Selector de Modo de Planificación: Sesión de Hoy vs Calendario Semanal */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0F172A] p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            Planificación del Coach
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Alterna entre las propuestas de la sesión de hoy o el calendario semanal completo.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+          <button
+            onClick={() => setCoachView('today')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              coachView === 'today'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Sesión de Hoy</span>
+          </button>
+
+          <button
+            onClick={() => setCoachView('weekly')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              coachView === 'weekly'
+                ? 'bg-cyan-500 text-slate-950 shadow-xs font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Calendario Semanal</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Notificación de Descarga de Entrenamiento Estructurado */}
+      {exportNotice && (
+        <div className="p-3 bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200 dark:border-cyan-800 rounded-xl text-xs text-cyan-950 dark:text-cyan-200 flex items-center gap-2 animate-in fade-in">
+          <Watch className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+          <span>{exportNotice}</span>
+        </div>
+      )}
+
+      {/* VISTA 1: CALENDARIO SEMANAL INTERACTIVO */}
+      {coachView === 'weekly' && (
+        <WeeklyTrainingPlanner metrics={metrics} />
+      )}
+
+      {/* VISTA 2: SESIÓN DE HOY */}
+      {coachView === 'today' && (
+        <>
+          {/* Si ya se completó el entreno hoy, mensaje de éxito */}
       {todayCompleted && (
         <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -233,7 +300,16 @@ export function DailyCoachSection({
                 </div>
 
                 {/* Acciones principales */}
-                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                  <button
+                    onClick={() => handleExportWorkout(currentPlan)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 text-xs font-bold border border-cyan-200 dark:border-cyan-800 transition-all touch-target"
+                    title="Descargar sesión estructurada con intervalos para Garmin o COROS"
+                  >
+                    <Watch className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    <span>Enviar al Reloj (.FIT)</span>
+                  </button>
+
                   {currentPlan.suggestedRouteDistanceKm && (
                     <button
                       onClick={() => onSelectRouteForWorkout(currentPlan.sport, currentPlan.suggestedRouteDistanceKm!)}
@@ -298,6 +374,8 @@ export function DailyCoachSection({
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

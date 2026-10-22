@@ -34,6 +34,8 @@ import {
 import { getSportVisual } from './ActivityFeed';
 import { PerformanceChart } from './PerformanceChart';
 import { RacePredictor } from './RacePredictor';
+import { ClubLeaderboard } from './ClubLeaderboard';
+import { UserSessionPayload } from '@/lib/auth';
 
 interface CorosDashboardProps {
   metrics: BiometricMetrics;
@@ -41,6 +43,7 @@ interface CorosDashboardProps {
   habit: NonZeroHabit;
   onNavigateTab: (tab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
   onOpenSync?: (tab?: 'garmin' | 'coros' | 'igpsport' | 'strava') => void;
+  currentUser?: UserSessionPayload | null;
 }
 
 export function CorosDashboard({
@@ -49,6 +52,7 @@ export function CorosDashboard({
   habit,
   onNavigateTab,
   onOpenSync,
+  currentUser,
 }: CorosDashboardProps) {
   // Última actividad real registrada
   const latestActivity = activities.length > 0 ? activities[0] : null;
@@ -524,6 +528,11 @@ export function CorosDashboard({
       {/* 4. PREDICTOR DE TIEMPOS DE CARRERA (EVOLAB RACE PREDICTOR) */}
       {/* ============================================================== */}
       <RacePredictor vo2Max={metrics.vo2Max} activities={activities} />
+
+      {/* ============================================================== */}
+      {/* 5. CLUB PULSE COACH & RETOS DE GRUPO */}
+      {/* ============================================================== */}
+      <ClubLeaderboard currentUser={currentUser} />
 
     </div>
   );
