@@ -1,4 +1,13 @@
-export type SportType = 'running' | 'cycling' | 'trail' | 'mtb' | 'strength_mobility';
+export type SportType = 
+  | 'running' 
+  | 'cycling' 
+  | 'trail' 
+  | 'mtb' 
+  | 'hiking' 
+  | 'walking' 
+  | 'swimming' 
+  | 'strength_mobility' 
+  | 'cardio';
 
 export interface BiometricMetrics {
   bodyBattery: number; // 0-100
@@ -21,6 +30,7 @@ export interface ActivitySession {
   id: string;
   source: 'garmin' | 'strava';
   sport: SportType;
+  sportLabel?: string;
   title: string;
   date: string;
   durationMin: number;

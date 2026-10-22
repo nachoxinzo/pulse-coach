@@ -17,14 +17,13 @@ export async function GET() {
   // Si no hay sesión iniciada pero disponemos de sesión activa de Garmin, cargamos las reales
   if (!user) {
     try {
-      const { getGarminClient } = await import('@/lib/garmin-sync');
+      const { getGarminClient, mapGarminSport } = await import('@/lib/garmin-sync');
       const garmin = await getGarminClient();
       if (garmin) {
         const rawActivities = await garmin.getActivities(0, 15);
         if (rawActivities && rawActivities.length > 0) {
           const realActs = rawActivities.map((a: any) => {
-            const key = (a.activityType?.typeKey || '').toLowerCase();
-            const sport = key.includes('bike') ? 'cycling' : key.includes('hike') ? 'trail' : 'running';
+            const sport = mapGarminSport(a.activityType?.typeKey, a.activityName);
             return {
               id: `garmin-${a.activityId}`,
               source: 'garmin' as const,

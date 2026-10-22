@@ -69,13 +69,21 @@ export async function getGarminClient(): Promise<Garmin | null> {
 /**
  * Mapea el tipo de deporte de Garmin Connect a SportType de Pulse Coach
  */
-function mapGarminSport(typeKey?: string): SportType {
+export function mapGarminSport(typeKey?: string, activityName?: string): SportType {
   const key = (typeKey || '').toLowerCase();
-  if (key.includes('mountain') || key.includes('mtb') || key.includes('gravel')) return 'mtb';
-  if (key.includes('bike') || key.includes('cycling')) return 'cycling';
-  if (key.includes('trail') || key.includes('hike') || key.includes('hiking')) return 'trail';
-  if (key.includes('run')) return 'running';
-  return 'strength_mobility';
+  const name = (activityName || '').toLowerCase();
+
+  if (key.includes('mountain') || key.includes('mtb') || name.includes('btt') || name.includes('mtb')) return 'mtb';
+  if (key.includes('gravel')) return 'cycling';
+  if (key.includes('bike') || key.includes('cycling') || name.includes('ciclismo')) return 'cycling';
+  if (key.includes('hike') || key.includes('hiking') || name.includes('senderismo')) return 'hiking';
+  if (key.includes('trail') || name.includes('trail')) return 'trail';
+  if (key.includes('walk') || key.includes('walking') || name.includes('caminata') || name.includes('paseo')) return 'walking';
+  if (key.includes('swim') || name.includes('natación') || name.includes('nadar')) return 'swimming';
+  if (key.includes('run') || name.includes('carrera') || name.includes('running')) return 'running';
+  if (key.includes('strength') || name.includes('fuerza') || name.includes('pesas')) return 'strength_mobility';
+  if (key.includes('cardio') || key.includes('fitness')) return 'cardio';
+  return 'running';
 }
 
 /**
@@ -127,7 +135,7 @@ export async function syncRealGarminData(userId: string): Promise<{
     });
 
     for (const a of rawActivities) {
-      const sport = mapGarminSport(a.activityType?.typeKey);
+      const sport = mapGarminSport(a.activityType?.typeKey, a.activityName);
       const title = a.activityName || 'Entrenamiento Garmin';
       const date = a.startTimeLocal ? a.startTimeLocal.slice(0, 16).replace('T', ' ') : 'Reciente';
       const durationMin = Math.round((a.duration || 0) / 60);

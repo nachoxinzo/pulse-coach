@@ -206,6 +206,10 @@ export async function generateRealRoadLoop(
           trail: 'Senda de Monte & Trail Running',
           cycling: 'Circuito Carretera Secundaria Tranquila',
           running: 'Ruta Running Asfalto & Paseo',
+          hiking: 'Ruta de Senderismo',
+          walking: 'Caminata y Paseo Activo',
+          swimming: 'Sesión de Natación',
+          cardio: 'Sesión Cardio & Fitness',
           strength_mobility: 'Paseo Activo',
         };
 
