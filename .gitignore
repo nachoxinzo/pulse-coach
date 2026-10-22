@@ -1,0 +1,36 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js build output
+/.next/
+/out/
+
+# Production
+/build
+
+# Environment variables & Sensitive data
+.env
+.env*.local
+.env.production
+tokens/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Vercel
+.vercel
+
+# System & OS files
+.DS_Store
+Thumbs.db
+*.pem
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
