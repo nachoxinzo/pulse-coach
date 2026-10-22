@@ -29,10 +29,21 @@ import {
   Send,
   Sparkle,
   Share2,
-  Smartphone
+  Smartphone,
+  Flame
 } from 'lucide-react';
 import { DeviceSyncModal } from './DeviceSyncModal';
 import { RouteWeatherWidget } from './RouteWeatherWidget';
+
+const PersonalHeatmap = dynamic(() => import('./PersonalHeatmap').then(m => m.PersonalHeatmap), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 text-white text-xs font-bold gap-2">
+      <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+      <span>Cargando mapa de calor personal...</span>
+    </div>
+  ),
+});
 
 const RouteMap = dynamic(() => import('./RouteMap'), {
   ssr: false,
@@ -61,14 +72,16 @@ export const GALICIA_PRESETS = [
 interface RouteExplorerProps {
   initialSport?: SportType;
   initialDistanceKm?: number;
+  initialMode?: 'loop' | 'database' | 'heatmap';
 }
 
 export function RouteExplorer({
   initialSport = 'trail',
   initialDistanceKm = 14,
+  initialMode = 'loop',
 }: RouteExplorerProps) {
-  // Modo de visualización: Generador de bucle a medida vs Catálogo de Base de Datos
-  const [explorerMode, setExplorerMode] = useState<'loop' | 'database'>('loop');
+  // Modo de visualización: Generador de bucle a medida vs Catálogo Oficial vs Heatmap GPS
+  const [explorerMode, setExplorerMode] = useState<'loop' | 'database' | 'heatmap'>(initialMode);
 
   const [sport, setSport] = useState<SportType>(initialSport);
   const [distanceKm, setDistanceKm] = useState<number>(initialDistanceKm);
@@ -267,8 +280,8 @@ export function RouteExplorer({
           </p>
         </div>
 
-        {/* Interruptor de Modo: Generador Circular vs Base de Datos */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 self-start sm:self-auto">
+        {/* Interruptor de Modo: Generador Circular vs Base de Datos vs Heatmap GPS */}
+        <div className="flex flex-wrap items-center p-1 bg-slate-100 rounded-xl border border-slate-200 self-start sm:self-auto gap-1">
           <button
             onClick={() => setExplorerMode('loop')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -289,7 +302,18 @@ export function RouteExplorer({
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>Base de Datos Oficial ({OFFICIAL_TRAILS_DATABASE.length})</span>
+            <span>Base Oficial ({OFFICIAL_TRAILS_DATABASE.length})</span>
+          </button>
+          <button
+            onClick={() => setExplorerMode('heatmap')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              explorerMode === 'heatmap'
+                ? 'bg-cyan-500 text-slate-950 shadow-xs font-black'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5 text-cyan-500 fill-cyan-500/20" />
+            <span>Mi Heatmap GPS</span>
           </button>
         </div>
       </div>
@@ -379,7 +403,7 @@ export function RouteExplorer({
                     }`}
                   >
                     <Bike className="w-4 h-4 stroke-[2.2]" />
-                    <span>🚵 Mountain Bike (MTB/BTT)</span>
+                    <span>Mountain Bike (MTB/BTT)</span>
                   </button>
 
                   {/* Botón Trail Running */}
@@ -392,7 +416,7 @@ export function RouteExplorer({
                     }`}
                   >
                     <Mountain className="w-4 h-4 stroke-[2.2]" />
-                    <span>🏃 Trail Running (Monte)</span>
+                    <span>Trail Running (Monte)</span>
                   </button>
 
                   {/* Botón Ciclismo Carretera / Gravel */}
@@ -405,7 +429,7 @@ export function RouteExplorer({
                     }`}
                   >
                     <Bike className="w-4 h-4 stroke-[2.2]" />
-                    <span>🚴 Ciclismo / Gravel</span>
+                    <span>Ciclismo / Gravel</span>
                   </button>
 
                   {/* Botón Running Asfalto */}
@@ -418,7 +442,7 @@ export function RouteExplorer({
                     }`}
                   >
                     <Footprints className="w-4 h-4 stroke-[2.2]" />
-                    <span>👟 Running Asfalto</span>
+                    <span>Running Asfalto</span>
                   </button>
 
                 </div>
@@ -617,9 +641,17 @@ export function RouteExplorer({
       )}
 
       {/* ============================================================== */}
-      {/* VISOR DE MAPA Y PERFIL DE ELEVACIÓN */}
+      {/* VISTA 3: MODO HEATMAP PERSONAL GPS */}
       {/* ============================================================== */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] overflow-hidden">
+      {explorerMode === 'heatmap' && (
+        <PersonalHeatmap />
+      )}
+
+      {/* ============================================================== */}
+      {/* VISOR DE MAPA Y PERFIL DE ELEVACIÓN (PARA LOOP Y DATABASE) */}
+      {/* ============================================================== */}
+      {explorerMode !== 'heatmap' && (
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] overflow-hidden">
         
         {/* Métricas Resumen */}
         <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-4">
@@ -789,14 +821,17 @@ export function RouteExplorer({
         )}
 
       </div>
+      )}
 
       {/* Nota Informativa sobre la Capa de Senderos Homologados */}
-      <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200/80 flex items-start gap-3">
-        <Trees className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-        <div className="text-xs text-emerald-950 leading-relaxed">
-          <strong>Base de Datos y Capas Integradas:</strong> Puedes activar en la esquina superior derecha del mapa el botón <strong>«Senderos Homologados Activos»</strong> para superponer directamente la red oficial de senderos (Waymarked Trails / Sendegal PR-G y pistas balizadas BTT). En el modo <strong>«Base de Datos Oficial»</strong> dispones de los circuitos reales de A Limia, San Mamede y el Parque Natural del Xurés con sus perfiles de desnivel y porcentajes de tierra y sendero.
+      {explorerMode !== 'heatmap' && (
+        <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200/80 flex items-start gap-3">
+          <Trees className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+          <div className="text-xs text-emerald-950 leading-relaxed">
+            <strong>Base de Datos y Capas Integradas:</strong> Puedes activar en la esquina superior derecha del mapa el botón <strong>«Senderos Homologados Activos»</strong> para superponer directamente la red oficial de senderos (Waymarked Trails / Sendegal PR-G y pistas balizadas BTT). En el modo <strong>«Base de Datos Oficial»</strong> dispones de los circuitos reales de A Limia, San Mamede y el Parque Natural del Xurés con sus perfiles de desnivel y porcentajes de tierra y sendero.
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Modal de sincronización para COROS, iGPSPORT, Garmin y Strava */}
       {route && (

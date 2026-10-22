@@ -513,19 +513,26 @@ export function CorosDashboard({
 
           </div>
 
-          {/* Acceso Rápido a Rutas y Eventos */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+          {/* Acceso Rápido a Rutas, Heatmap y Eventos */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2">
             <button
               onClick={() => onNavigateTab('routes')}
-              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all text-center touch-target"
+              className="py-2.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all text-center touch-target"
             >
-              Explorar Senderos
+              Senderos
+            </button>
+            <button
+              onClick={() => onNavigateTab('routes')}
+              className="py-2.5 px-2 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 text-xs font-bold transition-all text-center touch-target flex items-center justify-center gap-1"
+            >
+              <Flame className="w-3.5 h-3.5 text-cyan-500 fill-cyan-500/20" />
+              <span>Heatmap</span>
             </button>
             <button
               onClick={() => onNavigateTab('events')}
-              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900 dark:bg-cyan-500 hover:bg-slate-800 dark:hover:bg-cyan-400 text-white dark:text-slate-950 text-xs font-bold transition-all text-center touch-target"
+              className="py-2.5 px-2 rounded-xl bg-slate-900 dark:bg-cyan-500 hover:bg-slate-800 dark:hover:bg-cyan-400 text-white dark:text-slate-950 text-xs font-bold transition-all text-center touch-target"
             >
-              Eventos Populares
+              Eventos
             </button>
           </div>
 

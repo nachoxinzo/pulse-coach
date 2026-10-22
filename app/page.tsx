@@ -97,9 +97,10 @@ export default function Home() {
     }
   };
 
-  // Estados de ruta seleccionada desde el Coach
+  // Estados de ruta seleccionada desde el Coach o Heatmap
   const [routeSport, setRouteSport] = useState<SportType>('running');
   const [routeDistanceKm, setRouteDistanceKm] = useState<number>(8);
+  const [routeMode, setRouteMode] = useState<'loop' | 'database' | 'heatmap'>('loop');
 
   // Persistir en localStorage si está disponible
   useEffect(() => {
@@ -259,6 +260,7 @@ export default function Home() {
                 <RouteExplorer
                   initialSport={routeSport}
                   initialDistanceKm={routeDistanceKm}
+                  initialMode={routeMode}
                 />
               </div>
             )}
