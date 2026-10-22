@@ -147,3 +147,30 @@ export interface PopularEvent {
   stravaSegmentUrl?: string; // Enlace a ruta o segmento oficial en Strava
   isVerifiedRoute?: boolean; // Trazado verificado sobre red vial real
 }
+
+export interface GearComponent {
+  id: string;
+  name: string;
+  currentKm: number;
+  maxKm: number;
+  lastReplacedDate?: string;
+  status: 'good' | 'warning' | 'replace';
+}
+
+export interface GearItem {
+  id: string;
+  garminUuid?: string;
+  name: string;
+  brand: string;
+  model: string;
+  type: 'shoes' | 'bike';
+  sportType: 'running' | 'trail' | 'cycling' | 'mtb';
+  currentKm: number;
+  maxKm: number;
+  purchaseDate: string;
+  isDefault: boolean;
+  isRetired?: boolean;
+  status: 'good' | 'warning' | 'replace';
+  components?: GearComponent[];
+}
+

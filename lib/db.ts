@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import crypto from 'crypto';
-import { BiometricMetrics, ActivitySession, NonZeroHabit } from '@/types';
+import { BiometricMetrics, ActivitySession, NonZeroHabit, GearItem } from '@/types';
 import { INITIAL_BIOMETRICS, INITIAL_NON_ZERO_HABIT, RECENT_ACTIVITIES } from './mock-data';
 
 let clientInstance: Client | null = null;
@@ -94,6 +94,30 @@ export async function initDb(): Promise<void> {
     )
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_habits_user ON user_habits (user_id)`);
+
+  // 5. Tabla de equipamiento y material (Zapatillas y Bicis reales)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS gear (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      garmin_uuid TEXT,
+      name TEXT NOT NULL,
+      brand TEXT NOT NULL,
+      model TEXT NOT NULL,
+      type TEXT NOT NULL,
+      sport_type TEXT NOT NULL,
+      current_km REAL NOT NULL,
+      max_km INTEGER NOT NULL,
+      purchase_date TEXT NOT NULL,
+      is_default INTEGER NOT NULL DEFAULT 0,
+      is_retired INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'good',
+      components_json TEXT,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_gear_user ON gear (user_id)`);
 }
 
 /**
@@ -372,3 +396,95 @@ export async function updateUserHabit(userId: string, habit: Partial<NonZeroHabi
 
   return updated;
 }
+
+/**
+ * Obtiene el equipamiento registrado de un usuario
+ */
+export async function getUserGear(userId: string): Promise<GearItem[]> {
+  const db = getDb();
+  await initDb();
+  const res = await db.execute({
+    sql: 'SELECT * FROM gear WHERE user_id = ? ORDER BY is_retired ASC, current_km DESC',
+    args: [userId],
+  });
+
+  return res.rows.map((r: any) => {
+    let components = undefined;
+    if (r.components_json) {
+      try {
+        components = JSON.parse(String(r.components_json));
+      } catch {
+        // fallback
+      }
+    }
+
+    return {
+      id: String(r.id),
+      garminUuid: r.garmin_uuid ? String(r.garmin_uuid) : undefined,
+      name: String(r.name),
+      brand: String(r.brand),
+      model: String(r.model),
+      type: String(r.type) as 'shoes' | 'bike',
+      sportType: String(r.sport_type) as any,
+      currentKm: Number(r.current_km),
+      maxKm: Number(r.max_km),
+      purchaseDate: String(r.purchase_date),
+      isDefault: Boolean(r.is_default),
+      isRetired: Boolean(r.is_retired),
+      status: String(r.status) as any,
+      components,
+    };
+  });
+}
+
+/**
+ * Guarda o actualiza la lista de equipamiento de un usuario
+ */
+export async function saveUserGear(userId: string, items: GearItem[]): Promise<void> {
+  const db = getDb();
+  await initDb();
+
+  for (const item of items) {
+    await db.execute({
+      sql: `
+        INSERT INTO gear (
+          id, user_id, garmin_uuid, name, brand, model, type, sport_type,
+          current_km, max_km, purchase_date, is_default, is_retired, status, components_json, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          brand = excluded.brand,
+          model = excluded.model,
+          type = excluded.type,
+          sport_type = excluded.sport_type,
+          current_km = excluded.current_km,
+          max_km = excluded.max_km,
+          purchase_date = excluded.purchase_date,
+          is_default = excluded.is_default,
+          is_retired = excluded.is_retired,
+          status = excluded.status,
+          components_json = excluded.components_json,
+          updated_at = excluded.updated_at
+      `,
+      args: [
+        item.id,
+        userId,
+        item.garminUuid || null,
+        item.name,
+        item.brand,
+        item.model,
+        item.type,
+        item.sportType,
+        item.currentKm,
+        item.maxKm,
+        item.purchaseDate,
+        item.isDefault ? 1 : 0,
+        item.isRetired ? 1 : 0,
+        item.status,
+        item.components ? JSON.stringify(item.components) : null,
+        new Date().toISOString(),
+      ],
+    });
+  }
+}
+
