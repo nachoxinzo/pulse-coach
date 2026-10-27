@@ -3,6 +3,12 @@ import { buildGpxXml } from './gpx-builder';
 
 export const DEFAULT_COORDS = { lat: 42.0630, lng: -7.7240 }; // Xinzo de Limia
 
+export interface CustomRouteWaypoints {
+  startPoint?: [number, number] | null; // [lat, lng]
+  viaPoints: [number, number][]; // array de [lat, lng] por donde se quiere pasar
+  endPoint?: [number, number] | null; // [lat, lng] o null si es circular (vuelve al inicio)
+}
+
 // Sectores de Montaña de Referencia para Xinzo de Limia (A Limia / Ourense)
 export const XINZO_MOUNTAIN_SECTORS = [
   {
@@ -123,11 +129,80 @@ async function fetchRealElevationForCoordinates(
 }
 
 /**
- * Genera una ruta en bucle que:
- * - Para MTB y Trail: Prioriza montes, pistas forestales, sendas de tierra y sierras cercanas.
+ * Escanea mediante radar topográfico (Open-Meteo Elevation DEM) las 12 direcciones
+ * cardinales alrededor de un punto (lat, lng) y devuelve los ángulos (en radianes)
+ * ordenados de mayor a menor ganancia de altitud de montaña.
+ * Permite que cualquier ruta de MTB o Trail priorice incursiones en los montes más altos cercanos.
+ */
+async function findBestMountainAngles(
+  centerLat: number,
+  centerLng: number,
+  probeRadiusKm = 8.0
+): Promise<number[]> {
+  const defaultAngles = [0.85, 2.30, 3.80, 5.35];
+  try {
+    const latDelta = 1 / 111.0;
+    const lngDelta = 1 / (111.0 * Math.cos((centerLat * Math.PI) / 180));
+
+    const numDirections = 12;
+    const midKm = Math.max(3.5, probeRadiusKm * 0.55);
+    const farKm = Math.max(6.0, probeRadiusKm);
+
+    const lats: string[] = [centerLat.toFixed(5)];
+    const lngs: string[] = [centerLng.toFixed(5)];
+    const angles: number[] = [];
+
+    for (let i = 0; i < numDirections; i++) {
+      const theta = (i * 2 * Math.PI) / numDirections;
+      angles.push(theta);
+      // Muestra intermedia (pie de monte)
+      lats.push((centerLat + midKm * Math.sin(theta) * latDelta).toFixed(5));
+      lngs.push((centerLng + midKm * Math.cos(theta) * lngDelta).toFixed(5));
+      // Muestra lejana (cumbre / sierra)
+      lats.push((centerLat + farKm * Math.sin(theta) * latDelta).toFixed(5));
+      lngs.push((centerLng + farKm * Math.cos(theta) * lngDelta).toFixed(5));
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const url = `https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lngs.join(',')}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) return defaultAngles;
+    const data = await res.json();
+    const elevations: number[] = data.elevation;
+    if (!Array.isArray(elevations) || elevations.length < 1 + numDirections * 2) {
+      return defaultAngles;
+    }
+
+    const baseEle = elevations[0];
+    const scoredAngles: { angle: number; score: number }[] = [];
+
+    for (let i = 0; i < numDirections; i++) {
+      const eleMid = elevations[1 + i * 2];
+      const eleFar = elevations[1 + i * 2 + 1];
+      const maxGain = Math.max(eleMid - baseEle, eleFar - baseEle);
+      const avgGain = ((eleMid - baseEle) + (eleFar - baseEle)) / 2;
+      scoredAngles.push({
+        angle: angles[i],
+        score: maxGain * 0.7 + avgGain * 0.3,
+      });
+    }
+
+    scoredAngles.sort((a, b) => b.score - a.score);
+    return scoredAngles.map((s) => s.angle);
+  } catch {
+    return defaultAngles;
+  }
+}
+
+/**
+ * Genera una ruta en bucle o pasando por puntos personalizados (Inicio, Puntos de Paso 1..N, Final) que:
+ * - Para MTB y Trail: Prioriza incursiones en montes, pistas forestales, sendas de tierra y sierras cercanas.
  * - Para Ciclismo Carretera: Prioriza carreteras comarcales y secundarias de mínimo tráfico, evitando autovías.
  * - Para Running: Prioriza paseos peatonales, parques y aceras anchas.
- * - Calibra la distancia con OSRM para que coincida con la distancia objetivo pedida por el usuario.
+ * - Respeta todos los puntos de paso marcados por el usuario y calibra la distancia con OSRM para que coincida con la distancia objetivo.
  * - Calcula el desnivel acumulado y el perfil altimétrico a partir de datos topográficos reales.
  */
 export async function generateRealRoadLoop(
@@ -135,16 +210,28 @@ export async function generateRealRoadLoop(
   centerLng: number,
   targetDistanceKm: number,
   sport: SportType,
-  seedVariant = 0
+  seedVariant = 0,
+  customWaypoints?: CustomRouteWaypoints
 ): Promise<GeneratedRoute> {
   const profile = (sport === 'cycling' || sport === 'mtb') ? 'bike' : 'foot';
   const isMountainSport = sport === 'mtb' || sport === 'trail';
-  
-  const latDeltaPerKm = 1 / 111.0;
-  const lngDeltaPerKm = 1 / (111.0 * Math.cos((centerLat * Math.PI) / 180));
 
-  // Detectar si el usuario está en el valle de Xinzo de Limia / A Limia
-  const isXinzoArea = Math.abs(centerLat - 42.0630) < 0.12 && Math.abs(centerLng - (-7.7240)) < 0.12;
+  // Determinar punto de inicio efectivo y punto final efectivo
+  const startLat = customWaypoints?.startPoint ? customWaypoints.startPoint[0] : centerLat;
+  const startLng = customWaypoints?.startPoint ? customWaypoints.startPoint[1] : centerLng;
+
+  const endLat = customWaypoints?.endPoint ? customWaypoints.endPoint[0] : startLat;
+  const endLng = customWaypoints?.endPoint ? customWaypoints.endPoint[1] : startLng;
+
+  const viaPoints = customWaypoints?.viaPoints || [];
+  const isPointToPoint = haversineDistanceKm(startLat, startLng, endLat, endLng) > 0.15;
+  const hasCustomPoints = viaPoints.length > 0 || isPointToPoint;
+
+  const latDeltaPerKm = 1 / 111.0;
+  const lngDeltaPerKm = 1 / (111.0 * Math.cos((startLat * Math.PI) / 180));
+
+  // Detectar si el punto de salida está en el valle de Xinzo de Limia / A Limia
+  const isXinzoArea = Math.abs(startLat - 42.0630) < 0.08 && Math.abs(startLng - (-7.7240)) < 0.08;
 
   let terrainDescription = '';
   let customRouteTitle = '';
@@ -159,7 +246,16 @@ export async function generateRealRoadLoop(
     terrainDescription = '80% Aceras, paseos peatonales y parques | 20% Calles tranquilas';
   }
 
-  // 1. CONSTRUCCIÓN DE WAYPOINTS PARA MTB Y TRAIL (INCURSIÓN EN MONTAÑA)
+  // Si es deporte de montaña (MTB o Trail) fuera de los presets fijos de Xinzo o con puntos a medida,
+  // escanear el relieve real circundante para saber hacia dónde están las montañas más altas:
+  let detectedMountainAngles = [0.85, 2.30, 3.80, 5.35];
+  if (isMountainSport && (!isXinzoArea || hasCustomPoints)) {
+    const refLat = viaPoints.length > 0 ? viaPoints[viaPoints.length - 1][0] : startLat;
+    const refLng = viaPoints.length > 0 ? viaPoints[viaPoints.length - 1][1] : startLng;
+    detectedMountainAngles = await findBestMountainAngles(refLat, refLng, Math.max(5.5, targetDistanceKm * 0.28));
+  }
+
+  // 1. CONSTRUCCIÓN DE WAYPOINTS PARA MTB Y TRAIL (INCURSIÓN EN MONTAÑA SIN PUNTOS MANUALES)
   const buildMountainWaypoints = (scaleFactor: number, seed: number): [number, number][] => {
     if (isXinzoArea) {
       // Usar los corredores reales de montaña de Xinzo de Limia
@@ -173,38 +269,30 @@ export async function generateRealRoadLoop(
       const m2: [number, number] = [apexLng + sector.perpLng, apexLat + sector.perpLat];
 
       return [
-        [centerLng, centerLat],
+        [startLng, startLat],
         sector.approach,
         m1,
         m2,
         sector.returnPt,
-        [centerLng, centerLat],
+        [startLng, startLat],
       ];
     } else {
-      // Fuera de Xinzo (otras zonas de Galicia o GPS genérico):
-      // Proyectar un corredor de penetración en la sierra más cercana según el cuadrante
-      const mountainAngles = [0.85, 2.30, 3.80, 5.35];
-      const baseAngle = mountainAngles[seed % mountainAngles.length];
+      // Fuera de Xinzo: usar el ángulo de mayor ganancia topográfica real detectado por Open-Meteo DEM
+      const baseAngle = detectedMountainAngles[seed % Math.min(6, detectedMountainAngles.length)];
+      customRouteTitle = `${sport === 'mtb' ? 'Ruta BTT Incursión en Sierra' : 'Trail de Montaña'}`;
 
-      // Punto de aproximación al pie de la montaña (~25% de la distancia)
-      const approachKm = Math.max(2.5, targetDistanceKm * 0.22);
-      const wpApproach: [number, number] = [
-        centerLng + approachKm * Math.cos(baseAngle) * lngDeltaPerKm,
-        centerLat + approachKm * Math.sin(baseAngle) * latDeltaPerKm,
-      ];
-
-      // Punto más alto en la cresta de la montaña
-      const peakKm = Math.max(4.0, targetDistanceKm * 0.45 * scaleFactor);
+      // Cota alta en la sierra (dos vértices en el monte para trazar un bucle limpio sin callejones sin salida duplicados)
+      const peakKm = Math.max(0.6, targetDistanceKm * 0.22 * scaleFactor);
       const wpPeak1: [number, number] = [
-        centerLng + peakKm * Math.cos(baseAngle + 0.15) * lngDeltaPerKm,
-        centerLat + peakKm * Math.sin(baseAngle + 0.15) * latDeltaPerKm,
+        startLng + peakKm * Math.cos(baseAngle + 0.28) * lngDeltaPerKm,
+        startLat + peakKm * Math.sin(baseAngle + 0.28) * latDeltaPerKm,
       ];
       const wpPeak2: [number, number] = [
-        centerLng + (peakKm * 0.95) * Math.cos(baseAngle - 0.25) * lngDeltaPerKm,
-        centerLat + (peakKm * 0.95) * Math.sin(baseAngle - 0.25) * latDeltaPerKm,
+        startLng + (peakKm * 0.95) * Math.cos(baseAngle - 0.28) * lngDeltaPerKm,
+        startLat + (peakKm * 0.95) * Math.sin(baseAngle - 0.28) * latDeltaPerKm,
       ];
 
-      return [[centerLng, centerLat], wpApproach, wpPeak1, wpPeak2, wpApproach, [centerLng, centerLat]];
+      return [[startLng, startLat], wpPeak1, wpPeak2, [startLng, startLat]];
     }
   };
 
@@ -213,8 +301,8 @@ export async function generateRealRoadLoop(
     const roadAngles = [0.65, 2.10, 3.65, 5.15];
     const baseAngle = roadAngles[seed % roadAngles.length];
 
-    const circleCenterLat = centerLat + (radiusKm * Math.sin(baseAngle)) * latDeltaPerKm;
-    const circleCenterLng = centerLng + (radiusKm * Math.cos(baseAngle)) * lngDeltaPerKm;
+    const circleCenterLat = startLat + (radiusKm * Math.sin(baseAngle)) * latDeltaPerKm;
+    const circleCenterLng = startLng + (radiusKm * Math.cos(baseAngle)) * lngDeltaPerKm;
 
     const angle1 = baseAngle + Math.PI + (2 * Math.PI / 3);
     const angle2 = baseAngle + Math.PI + (4 * Math.PI / 3);
@@ -228,54 +316,175 @@ export async function generateRealRoadLoop(
       circleCenterLat + radiusKm * Math.sin(angle2) * latDeltaPerKm,
     ];
 
-    return [[centerLng, centerLat], wp1, wp2, [centerLng, centerLat]];
+    return [[startLng, startLat], wp1, wp2, [startLng, startLat]];
   };
 
-  // Inicializar escala según el tipo de deporte
-  let currentMountainScale = Math.max(0.35, (targetDistanceKm - 12) / 24);
-  let currentRoadRadius = Math.max(1.0, targetDistanceKm / (sport === 'cycling' ? 7.2 : 6.8));
+  // Función auxiliar para consultar OSRM dado un array de waypoints [lng, lat]
+  const queryOsrm = async (waypointsLngLat: [number, number][]) => {
+    const coordString = waypointsLngLat
+      .map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`)
+      .join(';');
+    const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${coordString}?overview=full&geometries=geojson&steps=false`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    const response = await fetch(osrmUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+      return data.routes[0];
+    }
+    return null;
+  };
 
   // Intentar consultar OSRM con calibración dinámica
   try {
     let bestRouteData: any = null;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const waypoints = isMountainSport
-        ? buildMountainWaypoints(currentMountainScale, seedVariant)
-        : buildRoadWaypoints(currentRoadRadius, seedVariant);
+    if (hasCustomPoints) {
+      // ============================================================================
+      // MODO PUNTOS PERSONALIZADOS (INICIO -> PUNTOS DE PASO 1..N -> FINAL + CALIBRACIÓN DE DISTANCIA)
+      // ============================================================================
+      customRouteTitle = viaPoints.length > 0
+        ? `Ruta a Medida (${viaPoints.length} ${viaPoints.length === 1 ? 'pto de paso' : 'ptos de paso'})`
+        : 'Ruta Punto a Punto a Medida';
 
-      const coordString = waypoints
-        .map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`)
-        .join(';');
+      // Construir cadena base obligatoria en formato [lng, lat]
+      const mandatoryWaypoints: [number, number][] = [
+        [startLng, startLat],
+        ...viaPoints.map(([lat, lng]) => [lng, lat] as [number, number]),
+        [endLng, endLat],
+      ];
 
-      const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${coordString}?overview=full&geometries=geojson&steps=false`;
+      // Si es circular (Start == End) y solo hay 1 punto de paso, añadimos un ligero desvío lateral
+      // en el regreso para que la ruta base no vuelva exactamente por la misma carretera/camino
+      const baseQueryWaypoints = [...mandatoryWaypoints];
+      if (!isPointToPoint && viaPoints.length === 1) {
+        const [vLat, vLng] = viaPoints[0];
+        const midLat = (startLat + vLat) / 2;
+        const midLng = (startLng + vLng) / 2;
+        const dLat = vLat - startLat;
+        const dLng = vLng - startLng;
+        // Vector perpendicular para abrir el bucle de retorno
+        const sideSign = seedVariant % 2 === 0 ? 1 : -1;
+        const retLat = midLat + (-dLng * 0.28 * sideSign);
+        const retLng = midLng + (dLat * 0.28 * sideSign);
+        baseQueryWaypoints.splice(2, 0, [retLng, retLat]);
+      }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const response = await fetch(osrmUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const baseRoute = await queryOsrm(baseQueryWaypoints);
+      if (baseRoute) {
+        bestRouteData = baseRoute;
+        const baseDistKm = baseRoute.distance / 1000;
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
+        // Si la ruta directa por los puntos marcados es más corta que el objetivo (>8% por debajo),
+        // inyectamos un bucle de extensión calibrado (priorizando la montaña en MTB/Trail)
+        if (baseDistKm < targetDistanceKm * 0.92) {
+          const prevPt = mandatoryWaypoints[mandatoryWaypoints.length - 2]; // [lng, lat] del último punto de paso (o inicio)
+          const lastPt = mandatoryWaypoints[mandatoryWaypoints.length - 1]; // [lng, lat] de la meta
+
+          const anchorLng = (prevPt[0] + lastPt[0]) / 2;
+          const anchorLat = (prevPt[1] + lastPt[1]) / 2;
+
+          // Elegir ángulo de incursión: en MTB/Trail hacia la mayor cota de montaña detectada;
+          // en Carretera/Running perpendicular al último tramo
+          let extAngle = detectedMountainAngles[seedVariant % Math.min(4, detectedMountainAngles.length)];
+          if (!isMountainSport) {
+            const segAngle = Math.atan2(
+              (lastPt[1] - prevPt[1]) / latDeltaPerKm,
+              (lastPt[0] - prevPt[0]) / lngDeltaPerKm
+            );
+            extAngle = segAngle + (seedVariant % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+          }
+
+          const neededExtraKm = Math.max(1.5, targetDistanceKm - baseDistKm * 0.82);
+          let extReachKm = Math.max(0.8, neededExtraKm / 3.1);
+
+          for (let attempt = 0; attempt < 2; attempt++) {
+            const ext1: [number, number] = [
+              anchorLng + extReachKm * Math.cos(extAngle + 0.26) * lngDeltaPerKm,
+              anchorLat + extReachKm * Math.sin(extAngle + 0.26) * latDeltaPerKm,
+            ];
+            const ext2: [number, number] = [
+              anchorLng + (extReachKm * 0.95) * Math.cos(extAngle - 0.26) * lngDeltaPerKm,
+              anchorLat + (extReachKm * 0.95) * Math.sin(extAngle - 0.26) * latDeltaPerKm,
+            ];
+
+            const extendedWaypoints: [number, number][] = [
+              ...mandatoryWaypoints.slice(0, mandatoryWaypoints.length - 1),
+              ext1,
+              ext2,
+              lastPt,
+            ];
+
+            const candidateRoute = await queryOsrm(extendedWaypoints);
+            if (candidateRoute) {
+              const candDistKm = candidateRoute.distance / 1000;
+              const prevBestDistKm = bestRouteData.distance / 1000;
+
+              if (Math.abs(candDistKm - targetDistanceKm) < Math.abs(prevBestDistKm - targetDistanceKm)) {
+                bestRouteData = candidateRoute;
+              }
+
+              const diffPct = Math.abs(candDistKm - targetDistanceKm) / targetDistanceKm;
+              if (diffPct <= 0.08) {
+                break;
+              }
+
+              if (attempt === 0) {
+                // Calibrar el alcance de la extensión según la respuesta real de la red de caminos OSRM
+                const retainedBaseKm = baseDistKm * 0.72;
+                const actualAddedKm = Math.max(0.6, candDistKm - retainedBaseKm);
+                const desiredAddedKm = Math.max(0.6, targetDistanceKm - retainedBaseKm);
+                extReachKm = Math.max(0.4, extReachKm * Math.pow(desiredAddedKm / actualAddedKm, 0.88));
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // ============================================================================
+      // MODO BUCLE AUTOMÁTICO CON PRIORIDAD DE MONTAÑA (MTB/TRAIL) O COMARCAL (CARRETERA)
+      // ============================================================================
+      let currentMountainScale = isXinzoArea
+        ? Math.max(0.35, (targetDistanceKm - 12) / 24)
+        : 0.85;
+      let currentRoadRadius = Math.max(1.0, targetDistanceKm / (sport === 'cycling' ? 7.2 : 6.8));
+      let activeSeed = seedVariant;
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const waypoints = isMountainSport
+          ? buildMountainWaypoints(currentMountainScale, activeSeed)
+          : buildRoadWaypoints(currentRoadRadius, activeSeed);
+
+        const route = await queryOsrm(waypoints);
+        if (route) {
           const distKm = route.distance / 1000;
-          bestRouteData = route;
+          if (
+            !bestRouteData ||
+            Math.abs(distKm - targetDistanceKm) < Math.abs(bestRouteData.distance / 1000 - targetDistanceKm)
+          ) {
+            bestRouteData = route;
+          }
 
-          // Si la distancia calculada está dentro del 10% de la distancia objetivo, la aceptamos
+          // Si la distancia calculada está dentro del 8% de la distancia objetivo, la aceptamos
           const diffPct = Math.abs(distKm - targetDistanceKm) / targetDistanceKm;
-          if (diffPct <= 0.10) {
+          if (diffPct <= 0.08) {
             break;
           }
 
-          // Si difiere más de un 10%, corregimos la escala para el segundo intento
-          if (attempt === 0) {
-            const correction = targetDistanceKm / distKm;
-            if (isMountainSport) {
-              currentMountainScale = Math.max(0.15, currentMountainScale * Math.pow(correction, 0.9));
-            } else {
-              currentRoadRadius = currentRoadRadius * Math.pow(correction, 0.9);
-            }
+          // Si el rodeo supera 2.2x el objetivo (ej. río o embalse sin puente cercano), probar el siguiente sector de monte
+          if (!isXinzoArea && distKm > targetDistanceKm * 2.2 && attempt === 0) {
+            activeSeed = activeSeed + 1;
+            continue;
+          }
+
+          // Corregir la escala para el siguiente intento
+          const correction = targetDistanceKm / distKm;
+          if (isMountainSport) {
+            currentMountainScale = Math.max(0.08, currentMountainScale * Math.pow(correction, 0.9));
+          } else {
+            currentRoadRadius = Math.max(0.4, currentRoadRadius * Math.pow(correction, 0.9));
           }
         }
       }

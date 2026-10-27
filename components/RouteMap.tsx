@@ -2,24 +2,62 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import type { Map as LeafletMap, Polyline as LeafletPolyline, Marker as LeafletMarker, TileLayer } from 'leaflet';
-import { Layers, Trees } from 'lucide-react';
+import { Layers, Trees, MousePointerClick } from 'lucide-react';
+
+export type MapClickMode = 'none' | 'set_start' | 'add_via' | 'set_end';
 
 interface RouteMapProps {
   coordinates: [number, number][];
   center: [number, number];
   sport: string;
+  customStart?: [number, number] | null;
+  customViaPoints?: [number, number][];
+  customEnd?: [number, number] | null;
+  clickMode?: MapClickMode;
+  onMapClickPoint?: (lat: number, lng: number) => void;
+  onRemoveViaPoint?: (index: number) => void;
+  onMoveWaypoint?: (type: 'start' | 'via' | 'end', index: number, lat: number, lng: number) => void;
 }
 
 export type MapLayerType = 'osm' | 'topo' | 'satellite';
 
-export default function RouteMap({ coordinates, center, sport }: RouteMapProps) {
+export default function RouteMap({
+  coordinates,
+  center,
+  sport,
+  customStart = null,
+  customViaPoints = [],
+  customEnd = null,
+  clickMode = 'none',
+  onMapClickPoint,
+  onRemoveViaPoint,
+  onMoveWaypoint,
+}: RouteMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const tileLayerRef = useRef<TileLayer | null>(null);
   const overlayLayerRef = useRef<TileLayer | null>(null);
   const polylineRef = useRef<LeafletPolyline | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
+  const waypointMarkersRef = useRef<LeafletMarker[]>([]);
   const leafletLibRef = useRef<any>(null);
+
+  // Ref para mantener los callbacks siempre actualizados dentro de los eventos nativos de Leaflet
+  const interactionRef = useRef({
+    clickMode,
+    onMapClickPoint,
+    onRemoveViaPoint,
+    onMoveWaypoint,
+  });
+
+  useEffect(() => {
+    interactionRef.current = {
+      clickMode,
+      onMapClickPoint,
+      onRemoveViaPoint,
+      onMoveWaypoint,
+    };
+  }, [clickMode, onMapClickPoint, onRemoveViaPoint, onMoveWaypoint]);
 
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('osm');
   const [showTrailsOverlay, setShowTrailsOverlay] = useState<boolean>(true);
@@ -96,6 +134,14 @@ export default function RouteMap({ coordinates, center, sport }: RouteMapProps) 
 
         mapInstanceRef.current = map;
 
+        // Escuchar clics en el mapa para colocar Inicio, Puntos de Paso o Meta
+        map.on('click', (e: any) => {
+          const { clickMode: mode, onMapClickPoint: cb } = interactionRef.current;
+          if (mode && mode !== 'none' && cb && e?.latlng) {
+            cb(e.latlng.lat, e.latlng.lng);
+          }
+        });
+
         // Renderizar trazado inicial si hay coordenadas
         if (coordinates.length > 0) {
           const strokeColor = getStrokeColor(sport);
@@ -109,9 +155,9 @@ export default function RouteMap({ coordinates, center, sport }: RouteMapProps) 
 
           const startIcon = L.divIcon({
             className: 'custom-start-marker',
-            html: `<div style="background-color: #0f172a; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">GO</div>`,
-            iconSize: [26, 26],
-            iconAnchor: [13, 13],
+            html: `<div style="background-color: #059669; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">INI</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
           });
           const marker = L.marker(coordinates[0], { icon: startIcon }).addTo(map);
           markerRef.current = marker;
@@ -160,23 +206,96 @@ export default function RouteMap({ coordinates, center, sport }: RouteMapProps) 
         }).addTo(map);
       }
 
+      const startCoords = customStart || coordinates[0];
       if (markerRef.current) {
-        markerRef.current.setLatLng(coordinates[0]);
+        markerRef.current.setLatLng(startCoords);
       } else {
         const startIcon = L.divIcon({
           className: 'custom-start-marker',
-          html: `<div style="background-color: #0f172a; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">GO</div>`,
-          iconSize: [26, 26],
-          iconAnchor: [13, 13],
+          html: `<div style="background-color: #059669; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">INI</div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
         });
-        markerRef.current = L.marker(coordinates[0], { icon: startIcon }).addTo(map);
+        markerRef.current = L.marker(startCoords, { icon: startIcon }).addTo(map);
       }
 
-      map.fitBounds(polylineRef.current.getBounds(), { padding: [35, 35], animate: false });
+      // Solo re-encuadrar automáticamente si no estamos haciendo clic interactivo continuo
+      if (clickMode === 'none' && customViaPoints.length === 0 && !customEnd) {
+        map.fitBounds(polylineRef.current.getBounds(), { padding: [35, 35], animate: false });
+      }
     } catch (err) {
       console.warn('Map route update error:', err);
     }
   }, [coordinates, sport]);
+
+  // 2b. Renderizado de Marcadores de Puntos de Paso (1, 2, 3...) y Punto Final (META)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const L = leafletLibRef.current;
+    if (!map || !L) return;
+
+    try {
+      // Limpiar marcadores previos de waypoints personalizados
+      waypointMarkersRef.current.forEach((m) => {
+        try {
+          map.removeLayer(m);
+        } catch {
+          // ignore
+        }
+      });
+      waypointMarkersRef.current = [];
+
+      // Marcadores numerados para cada Punto de Paso (1..N)
+      customViaPoints.forEach((pt, idx) => {
+        const viaIcon = L.divIcon({
+          className: `custom-via-marker-${idx}`,
+          html: `<div title="Punto de paso #${idx + 1} (Arrastra para mover o haz clic para eliminar)" style="background-color: #ea580c; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.35); cursor: pointer;">${idx + 1}</div>`,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        });
+
+        const viaMarker = L.marker(pt, { icon: viaIcon, draggable: true }).addTo(map);
+        viaMarker.on('click', (ev: any) => {
+          if (ev?.originalEvent) {
+            ev.originalEvent.stopPropagation();
+          }
+          if (interactionRef.current.onRemoveViaPoint) {
+            interactionRef.current.onRemoveViaPoint(idx);
+          }
+        });
+        viaMarker.on('dragend', (ev: any) => {
+          const pos = ev.target.getLatLng();
+          if (pos && interactionRef.current.onMoveWaypoint) {
+            interactionRef.current.onMoveWaypoint('via', idx, pos.lat, pos.lng);
+          }
+        });
+
+        waypointMarkersRef.current.push(viaMarker);
+      });
+
+      // Marcador de Punto Final (META) cuando es distinto del inicio
+      if (customEnd) {
+        const endIcon = L.divIcon({
+          className: 'custom-end-marker',
+          html: `<div title="Punto Final / Meta (Arrastra para mover)" style="background-color: #dc2626; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: grab;">FIN</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        });
+
+        const endMarker = L.marker(customEnd, { icon: endIcon, draggable: true }).addTo(map);
+        endMarker.on('dragend', (ev: any) => {
+          const pos = ev.target.getLatLng();
+          if (pos && interactionRef.current.onMoveWaypoint) {
+            interactionRef.current.onMoveWaypoint('end', 0, pos.lat, pos.lng);
+          }
+        });
+
+        waypointMarkersRef.current.push(endMarker);
+      }
+    } catch (err) {
+      console.warn('Error rendering custom waypoint markers:', err);
+    }
+  }, [customStart, customViaPoints, customEnd]);
 
   // 3. Cambio de capa base (OSM, Topográfico, Satélite PNOA)
   const handleChangeLayer = (layerKey: MapLayerType) => {
@@ -244,9 +363,24 @@ export default function RouteMap({ coordinates, center, sport }: RouteMapProps) 
   };
 
   return (
-    <div className="w-full h-80 sm:h-96 relative rounded-xl overflow-hidden border border-slate-200/90 shadow-inner">
-      <div ref={mapContainerRef} className="w-full h-full" />
-      
+    <div className="w-full h-80 sm:h-108 relative rounded-xl overflow-hidden border border-slate-200/90 shadow-inner">
+      <div
+        ref={mapContainerRef}
+        className={`w-full h-full ${clickMode !== 'none' ? 'cursor-crosshair' : ''}`}
+      />
+
+      {/* Indicador de Modo de Edición de Puntos en Mapa */}
+      {clickMode !== 'none' && (
+        <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-xl border border-slate-700 shadow-lg flex items-center gap-2 text-xs font-bold pointer-events-none">
+          <MousePointerClick className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>
+            {clickMode === 'set_start' && 'Haz clic en el mapa para fijar el Punto de Inicio (INI)'}
+            {clickMode === 'add_via' && `Haz clic en el mapa para añadir el Punto de Paso #${customViaPoints.length + 1}`}
+            {clickMode === 'set_end' && 'Haz clic en el mapa para fijar el Punto Final / Meta (FIN)'}
+          </span>
+        </div>
+      )}
+
       {/* Controles Flotantes Superiores */}
       <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-2">
         

@@ -33,8 +33,14 @@ import {
   Flame,
   Utensils,
   Plus,
-  Minus
+  Minus,
+  Flag,
+  Trash2,
+  Undo2,
+  MousePointerClick,
+  X
 } from 'lucide-react';
+import type { MapClickMode } from './RouteMap';
 import { DeviceSyncModal } from './DeviceSyncModal';
 import { RouteWeatherWidget } from './RouteWeatherWidget';
 import { RouteNutritionPlannerModal } from './RouteNutritionPlannerModal';
@@ -113,6 +119,54 @@ export function RouteExplorer({
   const [isNutritionModalOpen, setIsNutritionModalOpen] = useState<boolean>(false);
   const [selectedClimbId, setSelectedClimbId] = useState<string | null>(null);
 
+  // Estado de Puntos Personalizados en el Mapa (Inicio, Puntos de Paso 1..N y Meta)
+  const [clickMode, setClickMode] = useState<MapClickMode>('add_via');
+  const [customStart, setCustomStart] = useState<[number, number] | null>(null);
+  const [customViaPoints, setCustomViaPoints] = useState<[number, number][]>([]);
+  const [customEnd, setCustomEnd] = useState<[number, number] | null>(null);
+
+  // Manejar clic interactivo sobre el mapa
+  const handleMapClickPoint = (lat: number, lng: number) => {
+    if (explorerMode !== 'loop') return;
+    const roundedLat = Math.round(lat * 100000) / 100000;
+    const roundedLng = Math.round(lng * 100000) / 100000;
+
+    if (clickMode === 'set_start') {
+      setCustomStart([roundedLat, roundedLng]);
+      setUserLocation({ lat: roundedLat, lng: roundedLng });
+      setLocationLabel(`Inicio en Mapa (${roundedLat.toFixed(4)}, ${roundedLng.toFixed(4)})`);
+      setClickMode('add_via'); // Cambiar automáticamente a añadir puntos de paso tras fijar inicio
+    } else if (clickMode === 'add_via') {
+      setCustomViaPoints((prev) => [...prev, [roundedLat, roundedLng]]);
+    } else if (clickMode === 'set_end') {
+      setCustomEnd([roundedLat, roundedLng]);
+      setClickMode('add_via');
+    }
+  };
+
+  const handleRemoveViaPoint = (index: number) => {
+    setCustomViaPoints((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleMoveWaypoint = (type: 'start' | 'via' | 'end', index: number, lat: number, lng: number) => {
+    const roundedLat = Math.round(lat * 100000) / 100000;
+    const roundedLng = Math.round(lng * 100000) / 100000;
+    if (type === 'start') {
+      setCustomStart([roundedLat, roundedLng]);
+      setUserLocation({ lat: roundedLat, lng: roundedLng });
+    } else if (type === 'via') {
+      setCustomViaPoints((prev) => prev.map((pt, idx) => (idx === index ? [roundedLat, roundedLng] : pt)));
+    } else if (type === 'end') {
+      setCustomEnd([roundedLat, roundedLng]);
+    }
+  };
+
+  const handleClearCustomWaypoints = () => {
+    setCustomStart(null);
+    setCustomViaPoints([]);
+    setCustomEnd(null);
+  };
+
   // Detección de puertos y subidas para previsualización (ClimbPro preview)
   const detectedClimbs = React.useMemo(() => {
     if (!route || !route.elevationProfile || route.elevationProfile.length < 4) return [];
@@ -141,6 +195,9 @@ export function RouteExplorer({
   // Manejar cambio de zona de Galicia
   const handleSelectZone = (zoneId: string) => {
     setSelectedZoneId(zoneId);
+    setCustomStart(null);
+    setCustomViaPoints([]);
+    setCustomEnd(null);
     if (zoneId === 'gps') {
       handleLocateMe();
       return;
@@ -176,7 +233,7 @@ export function RouteExplorer({
     }
   };
 
-  // 1. En modo 'loop', recalcular con OSRM
+  // 1. En modo 'loop', recalcular con OSRM (incluyendo puntos de inicio, paso y final si están marcados)
   useEffect(() => {
     if (explorerMode !== 'loop') return;
 
@@ -188,7 +245,12 @@ export function RouteExplorer({
       userLocation.lng,
       distanceKm,
       sport,
-      seedVariant
+      seedVariant,
+      {
+        startPoint: customStart || [userLocation.lat, userLocation.lng],
+        viaPoints: customViaPoints,
+        endPoint: customEnd,
+      }
     ).then((calculatedRoute) => {
       if (!isCancelled) {
         setRoute(calculatedRoute);
@@ -199,7 +261,7 @@ export function RouteExplorer({
     return () => {
       isCancelled = true;
     };
-  }, [explorerMode, userLocation, distanceKm, sport, seedVariant]);
+  }, [explorerMode, userLocation, distanceKm, sport, seedVariant, customStart, customViaPoints, customEnd]);
 
   // 2. En modo 'database', cargar la ruta oficial seleccionada
   const handleSelectOfficialTrail = (trail: OfficialTrailRoute) => {
@@ -889,12 +951,157 @@ export function RouteExplorer({
           />
         </div>
 
+        {/* Barra Interactiva de Puntos de Inicio, Paso y Meta en el Mapa */}
+        {explorerMode === 'loop' && (
+          <div className="px-4 pt-4">
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                <div>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <MousePointerClick className="w-4 h-4 text-orange-600" />
+                    Diseña tu Ruta Tocando el Mapa (Inicio, Puntos de Paso y Meta)
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Marca por qué montes, pueblos o cruces quieres pasar; la app trazará el camino respetando tus puntos y ajustándolo a <strong>{distanceKm} km</strong>.
+                  </p>
+                </div>
+
+                {/* Botones de Modo de Clic en el Mapa */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setClickMode(clickMode === 'set_start' ? 'none' : 'set_start')}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all touch-target ${
+                      clickMode === 'set_start'
+                        ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-200'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Marcar Inicio</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setClickMode(clickMode === 'add_via' ? 'none' : 'add_via')}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all touch-target ${
+                      clickMode === 'add_via'
+                        ? 'bg-orange-600 text-white shadow-xs ring-2 ring-orange-200'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Añadir Punto de Paso ({customViaPoints.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setClickMode(clickMode === 'set_end' ? 'none' : 'set_end')}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all touch-target ${
+                      clickMode === 'set_end'
+                        ? 'bg-red-600 text-white shadow-xs ring-2 ring-red-200'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    <Flag className="w-3.5 h-3.5 text-red-500" />
+                    <span>{customEnd ? 'Cambiar Final' : 'Marcar Final Distinto'}</span>
+                  </button>
+
+                  {customEnd && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomEnd(null)}
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all touch-target"
+                      title="Volver al punto de salida (Ruta Circular)"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Hacer Circular (Meta = Inicio)</span>
+                    </button>
+                  )}
+
+                  {customViaPoints.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomViaPoints((prev) => prev.slice(0, -1))}
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all touch-target"
+                      title="Quitar el último punto de paso añadido"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                      <span>Deshacer</span>
+                    </button>
+                  )}
+
+                  {(customViaPoints.length > 0 || customEnd || customStart) && (
+                    <button
+                      type="button"
+                      onClick={handleClearCustomWaypoints}
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs font-bold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-all touch-target"
+                      title="Borrar todos los puntos marcados y volver al bucle automático"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Limpiar Puntos</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Resumen visual de la secuencia de puntos activos */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/70 text-[11px]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600 text-white font-bold">
+                  INI: {customStart ? `${customStart[0].toFixed(3)}, ${customStart[1].toFixed(3)}` : 'Salida Actual'}
+                </span>
+
+                {customViaPoints.map((pt, idx) => (
+                  <React.Fragment key={`via-badge-${idx}`}>
+                    <span className="text-slate-400 font-bold">→</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-100 text-orange-900 border border-orange-300 font-bold">
+                      <span>Paso #{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveViaPoint(idx)}
+                        className="hover:text-red-600 ml-0.5"
+                        title="Eliminar este punto de paso"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  </React.Fragment>
+                ))}
+
+                <span className="text-slate-400 font-bold">→</span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold ${
+                  customEnd
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-800 text-white'
+                }`}>
+                  {customEnd
+                    ? `FIN: Meta (${customEnd[0].toFixed(3)}, ${customEnd[1].toFixed(3)})`
+                    : 'FIN: Vuelta al Inicio (Circular)'}
+                </span>
+
+                <span className="ml-auto text-[10px] font-bold text-slate-500">
+                  {customViaPoints.length === 0 && !customEnd
+                    ? 'Toca en cualquier monte o pista del mapa para forzar el paso por ahí'
+                    : 'Puedes arrastrar los marcadores en el mapa para afinar el trazado'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Mapa Leaflet Multi-capa con Overlay Waymarked Trails */}
         <div className="p-4 relative">
           <RouteMap
             coordinates={route ? route.coordinates : []}
             center={[userLocation.lat, userLocation.lng]}
             sport={sport}
+            customStart={customStart || [userLocation.lat, userLocation.lng]}
+            customViaPoints={explorerMode === 'loop' ? customViaPoints : []}
+            customEnd={explorerMode === 'loop' ? customEnd : null}
+            clickMode={explorerMode === 'loop' ? clickMode : 'none'}
+            onMapClickPoint={handleMapClickPoint}
+            onRemoveViaPoint={handleRemoveViaPoint}
+            onMoveWaypoint={handleMoveWaypoint}
           />
           {isCalculatingRoute && (
             <div className="absolute inset-4 z-30 bg-white/60 backdrop-blur-xs flex items-center justify-center rounded-xl pointer-events-none">
