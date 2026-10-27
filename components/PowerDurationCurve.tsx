@@ -40,24 +40,49 @@ export interface PowerPoint {
 
 export function PowerDurationCurve({ 
   activities = [],
-  userWeightKg = 72 
+  userWeightKg = 99 
 }: PowerDurationCurveProps) {
   const [selectedPointIndex, setSelectedPointIndex] = useState<number>(3); // 20m
   const [userFtp, setUserFtp] = useState<number | null>(null);
+  const [effectiveWeight, setEffectiveWeight] = useState<number>(userWeightKg);
   const [isFtpModalOpen, setIsFtpModalOpen] = useState(false);
   const [inputFtp, setInputFtp] = useState('');
   const [showZonesTable, setShowZonesTable] = useState(true);
 
-  // Cargar FTP manual del usuario si existe
+  // Cargar FTP manual y peso del usuario si existe
   useEffect(() => {
     try {
       const stored = localStorage.getItem('pulse_user_ftp');
       if (stored) {
         setUserFtp(parseInt(stored, 10));
       }
+      const storedWeight = localStorage.getItem('pulse_user_weight_kg');
+      if (storedWeight) {
+        const w = parseFloat(storedWeight);
+        if (!isNaN(w) && w >= 45 && w <= 140) {
+          setEffectiveWeight(w);
+        }
+      } else {
+        setEffectiveWeight(99);
+      }
     } catch {
       // Ignorar
     }
+
+    const handleWeightSync = () => {
+      try {
+        const storedWeight = localStorage.getItem('pulse_user_weight_kg');
+        if (storedWeight) {
+          const w = parseFloat(storedWeight);
+          if (!isNaN(w) && w >= 45 && w <= 140) {
+            setEffectiveWeight(w);
+          }
+        }
+      } catch {}
+    };
+
+    window.addEventListener('pulse_weight_updated', handleWeightSync);
+    return () => window.removeEventListener('pulse_weight_updated', handleWeightSync);
   }, []);
 
   const handleSaveFtp = (e: React.FormEvent) => {
@@ -76,8 +101,8 @@ export function PowerDurationCurve({
 
   // Cálculo de FTP mediante algoritmos de vanguardia (Martin et al. 1998, Monod & Scherrer CP, Coggan)
   const ftpResult: FtpEstimationResult = useMemo(() => {
-    return estimateAthleteFtp(activities, userWeightKg, userFtp);
-  }, [activities, userWeightKg, userFtp]);
+    return estimateAthleteFtp(activities, effectiveWeight, userFtp);
+  }, [activities, effectiveWeight, userFtp]);
 
   const effectiveFtp = ftpResult.ftpWatts;
 
@@ -97,7 +122,7 @@ export function PowerDurationCurve({
         durationLabel: '5 seg',
         durationSec: 5,
         watts: p5s,
-        wattsPerKg: Number((p5s / userWeightKg).toFixed(1)),
+        wattsPerKg: Number((p5s / effectiveWeight).toFixed(1)),
         dateAchieved: todayStr,
         sourceActivity: sourceName,
         zoneName: 'Potencia Neuromuscular (Pmax)',
@@ -107,7 +132,7 @@ export function PowerDurationCurve({
         durationLabel: '1 min',
         durationSec: 60,
         watts: p1m,
-        wattsPerKg: Number((p1m / userWeightKg).toFixed(1)),
+        wattsPerKg: Number((p1m / effectiveWeight).toFixed(1)),
         dateAchieved: todayStr,
         sourceActivity: sourceName,
         zoneName: 'Capacidad Anaeróbica',
@@ -117,7 +142,7 @@ export function PowerDurationCurve({
         durationLabel: '5 min',
         durationSec: 300,
         watts: p5m,
-        wattsPerKg: Number((p5m / userWeightKg).toFixed(1)),
+        wattsPerKg: Number((p5m / effectiveWeight).toFixed(1)),
         dateAchieved: todayStr,
         sourceActivity: sourceName,
         zoneName: 'Potencia VO2 Máx',
@@ -127,7 +152,7 @@ export function PowerDurationCurve({
         durationLabel: '20 min',
         durationSec: 1200,
         watts: p20m,
-        wattsPerKg: Number((p20m / userWeightKg).toFixed(1)),
+        wattsPerKg: Number((p20m / effectiveWeight).toFixed(1)),
         dateAchieved: todayStr,
         sourceActivity: sourceName,
         zoneName: 'Umbral Lactato (Test 20m)',
@@ -137,14 +162,14 @@ export function PowerDurationCurve({
         durationLabel: '60 min',
         durationSec: 3600,
         watts: p60m,
-        wattsPerKg: Number((p60m / userWeightKg).toFixed(1)),
+        wattsPerKg: Number((p60m / effectiveWeight).toFixed(1)),
         dateAchieved: todayStr,
         sourceActivity: sourceName,
         zoneName: 'Umbral Funcional (FTP Real)',
         zoneColor: '#38BDF8',
       },
     ];
-  }, [ftpResult, effectiveFtp, userWeightKg]);
+  }, [ftpResult, effectiveFtp, effectiveWeight]);
 
   // Clasificación Coggan / Hunter Allen según W/kg
   let rankLabel = 'Amateur Activo (Cat 4)';
@@ -242,7 +267,7 @@ export function PowerDurationCurve({
             <span className="text-xs font-bold text-slate-500">W/kg</span>
           </div>
           <span className="text-[11px] text-slate-500 block truncate mt-0.5">
-            {userWeightKg} kg de peso corporal
+            {effectiveWeight} kg de peso corporal
           </span>
         </div>
 

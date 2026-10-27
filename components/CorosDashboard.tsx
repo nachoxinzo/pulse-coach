@@ -31,7 +31,8 @@ import {
   Upload,
   Radio,
   RefreshCw,
-  X
+  X,
+  Utensils
 } from 'lucide-react';
 import { getSportVisual } from './ActivityFeed';
 import { PerformanceChart } from './PerformanceChart';
@@ -50,6 +51,7 @@ interface CorosDashboardProps {
   onNavigateTab: (tab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
   onOpenSync?: (tab?: 'garmin' | 'coros' | 'igpsport' | 'strava') => void;
   onRefreshData?: () => Promise<void>;
+  onOpenNutrition?: () => void;
   currentUser?: UserSessionPayload | null;
 }
 
@@ -60,6 +62,7 @@ export function CorosDashboard({
   onNavigateTab,
   onOpenSync,
   onRefreshData,
+  onOpenNutrition,
   currentUser,
 }: CorosDashboardProps) {
   const [isSyncingGarmin, setIsSyncingGarmin] = useState(false);
@@ -230,6 +233,18 @@ export function CorosDashboard({
               )}
               <span>{isSyncingGarmin ? 'Sincronizando...' : 'Sincronizar Garmin'}</span>
             </button>
+
+            {/* Botón Calculadora de Nutrición & Avituallamiento */}
+            {onOpenNutrition && (
+              <button
+                onClick={onOpenNutrition}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all active:scale-[0.98] touch-target shadow-2xs"
+                title="Planificar nutrición deportiva con comida real (bocaditos de guayaba, sándwich) e hidratación para tu peso de 99 kg"
+              >
+                <Utensils className="w-4 h-4 text-emerald-400 stroke-[2]" />
+                <span>Nutrición & Avituallamiento</span>
+              </button>
+            )}
 
             {/* Botón Subir Archivo Manual */}
             <button

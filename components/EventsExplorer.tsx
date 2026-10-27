@@ -33,7 +33,8 @@ import {
   Watch,
   Upload,
   Compass,
-  Check
+  Check,
+  Utensils
 } from 'lucide-react';
 
 const RouteMap = dynamic(() => import('./RouteMap'), {
@@ -574,14 +575,14 @@ export function EventsExplorer({ metrics, onSetTargetEvent }: EventsExplorerProp
                       </a>
                     )}
 
-                    {/* Calculadora de Nutrición & Geles */}
+                    {/* Calculadora de Nutrición, Comida Real & Hidratación */}
                     <button
                       onClick={() => setFuelingEvent(event)}
-                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800 transition-all touch-target"
-                      title="Calcular geles, carbohidratos e hidratación para esta carrera"
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 transition-all touch-target"
+                      title="Calcular comida real (guayaba, sándwich), carbohidratos e hidratación"
                     >
-                      <Flame className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                      <span>Geles & Nutrición</span>
+                      <Utensils className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Nutrición & Comida</span>
                     </button>
 
                     {/* Ver Mapa */}

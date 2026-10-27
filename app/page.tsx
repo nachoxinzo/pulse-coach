@@ -14,6 +14,7 @@ import { CorosDashboard } from '@/components/CorosDashboard';
 import { WelcomeHero } from '@/components/WelcomeHero';
 import { GuidedTutorial } from '@/components/GuidedTutorial';
 import { PerformanceReportModal } from '@/components/PerformanceReportModal';
+import { FuelingCalculatorModal } from '@/components/FuelingCalculatorModal';
 import { UserSessionPayload } from '@/lib/auth';
 import { INITIAL_BIOMETRICS, INITIAL_NON_ZERO_HABIT, RECENT_ACTIVITIES } from '@/lib/mock-data';
 import { SportType, NonZeroHabit, BiometricMetrics, ActivitySession, PopularEvent } from '@/types';
@@ -40,6 +41,7 @@ export default function Home() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isFuelingModalOpen, setIsFuelingModalOpen] = useState(false);
 
   // Cargar datos del usuario autenticado desde el servidor
   const loadUserData = async () => {
@@ -227,6 +229,7 @@ export default function Home() {
                 onNavigateTab={(tab) => setActiveTab(tab)}
                 onOpenSync={handleOpenSync}
                 onRefreshData={loadUserData}
+                onOpenNutrition={() => setIsFuelingModalOpen(true)}
                 currentUser={currentUser}
               />
             )}
@@ -321,6 +324,13 @@ export default function Home() {
         activities={activities}
         habit={habit}
         currentUser={currentUser}
+      />
+
+      {/* Modal de Nutrición Deportiva & Comida Real (Guayaba, Sándwiches, Hidratación) */}
+      <FuelingCalculatorModal
+        isOpen={isFuelingModalOpen}
+        onClose={() => setIsFuelingModalOpen(false)}
+        eventTitle="Salida de Entrenamiento & Fondo"
       />
 
       {/* Footer Discreto */}
