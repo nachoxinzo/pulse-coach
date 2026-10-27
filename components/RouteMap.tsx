@@ -57,6 +57,9 @@ export default function RouteMap({
       onRemoveViaPoint,
       onMoveWaypoint,
     };
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.cursor = clickMode !== 'none' ? 'crosshair' : '';
+    }
   }, [clickMode, onMapClickPoint, onRemoveViaPoint, onMoveWaypoint]);
 
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('osm');
@@ -219,8 +222,9 @@ export default function RouteMap({
         markerRef.current = L.marker(startCoords, { icon: startIcon }).addTo(map);
       }
 
-      // Solo re-encuadrar automáticamente si no estamos haciendo clic interactivo continuo
-      if (clickMode === 'none' && customViaPoints.length === 0 && !customEnd) {
+      // Re-encuadrar automáticamente cuando se genera un bucle nuevo sin puntos intermedios manuales
+      if (customViaPoints.length === 0 && !customEnd) {
+        map.invalidateSize();
         map.fitBounds(polylineRef.current.getBounds(), { padding: [35, 35], animate: false });
       }
     } catch (err) {
@@ -363,11 +367,8 @@ export default function RouteMap({
   };
 
   return (
-    <div className="w-full h-80 sm:h-108 relative rounded-xl overflow-hidden border border-slate-200/90 shadow-inner">
-      <div
-        ref={mapContainerRef}
-        className={`w-full h-full ${clickMode !== 'none' ? 'cursor-crosshair' : ''}`}
-      />
+    <div className="w-full h-80 sm:h-96 relative rounded-xl overflow-hidden border border-slate-200/90 shadow-inner">
+      <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Indicador de Modo de Edición de Puntos en Mapa */}
       {clickMode !== 'none' && (
