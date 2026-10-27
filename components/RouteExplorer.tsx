@@ -30,10 +30,12 @@ import {
   Sparkle,
   Share2,
   Smartphone,
-  Flame
+  Flame,
+  Utensils
 } from 'lucide-react';
 import { DeviceSyncModal } from './DeviceSyncModal';
 import { RouteWeatherWidget } from './RouteWeatherWidget';
+import { RouteNutritionPlannerModal } from './RouteNutritionPlannerModal';
 
 const PersonalHeatmap = dynamic(() => import('./PersonalHeatmap').then(m => m.PersonalHeatmap), {
   ssr: false,
@@ -103,6 +105,7 @@ export function RouteExplorer({
   const [isSendingGarmin, setIsSendingGarmin] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
+  const [isNutritionModalOpen, setIsNutritionModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialSport) setSport(initialSport);
@@ -695,6 +698,16 @@ export function RouteExplorer({
               </button>
 
               <button
+                onClick={() => setIsNutritionModalOpen(true)}
+                disabled={isCalculatingRoute}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-all active:scale-[0.98] touch-target shrink-0 disabled:opacity-50"
+                title="Planificar cuándo harás la ruta, consultar la meteo prevista y enviarla a Garmin con avisos de comida y agua"
+              >
+                <Utensils className="w-4 h-4 stroke-[2.2]" />
+                <span>Nutrición en Garmin Edge</span>
+              </button>
+
+              <button
                 onClick={handleSendDirectToGarmin}
                 disabled={isCalculatingRoute || isSendingGarmin}
                 className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-all active:scale-[0.98] touch-target shrink-0 disabled:opacity-50"
@@ -844,6 +857,17 @@ export function RouteExplorer({
           coordinates={route.coordinates}
           elevationProfile={route.elevationProfile}
           onGarminSent={(msg) => setStatusMessage(msg)}
+        />
+      )}
+
+      {/* Modal de planificación de salida con meteorología y nutrición para ciclocomputador */}
+      {route && (
+        <RouteNutritionPlannerModal
+          isOpen={isNutritionModalOpen}
+          onClose={() => setIsNutritionModalOpen(false)}
+          route={route}
+          sport={sport}
+          onSuccessGarmin={(msg) => setStatusMessage(msg)}
         />
       )}
 

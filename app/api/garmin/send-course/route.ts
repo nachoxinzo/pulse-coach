@@ -32,7 +32,7 @@ function parseRawPointsFromGpx(gpx: string): { latitude: number; longitude: numb
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, sport, coordinates, elevationProfile, gpxContent } = body;
+    const { name, sport, coordinates, elevationProfile, gpxContent, coursePoints: rawCoursePoints } = body;
 
     if (!name || (!coordinates && !gpxContent)) {
       return NextResponse.json(
@@ -127,13 +127,27 @@ export async function POST(request: Request) {
       };
     });
 
+    // Formatear CoursePoints de nutrición e hidratación si han sido suministrados
+    const formattedCoursePoints = Array.isArray(rawCoursePoints) ? rawCoursePoints.map((cp: any) => ({
+      name: String(cp.name || 'Punto').slice(0, 32),
+      pointType: typeof cp.garminPointType === 'number' 
+        ? cp.garminPointType 
+        : (typeof cp.pointType === 'number' 
+            ? cp.pointType 
+            : (cp.pointType === 'Water' ? 2 : cp.pointType === 'Food' ? 3 : 1)),
+      distance: Number(cp.distanceMeters || cp.distance || 0),
+      latitude: Number(Number(cp.lat || cp.latitude).toFixed(6)),
+      longitude: Number(Number(cp.lng || cp.longitude).toFixed(6)),
+      elevation: Math.round(Number(cp.elevationM || cp.elevation || 0)),
+    })) : [];
+
     // Construcción del payload oficial de Garmin Connect con todos los campos de elevación y distancia requeridos
     const coursePayload = {
       activityTypePk: activityTypeId,
       hasTurnDetectionDisabled: false,
       geoPoints,
       courseLines: [],
-      coursePoints: [],
+      coursePoints: formattedCoursePoints,
       startPoint: geoPoints[0],
       elapsedSeconds: Math.round(cumulativeDistMeters / speedMps),
       openStreetMap: false,
@@ -169,7 +183,10 @@ export async function POST(request: Request) {
       courseUrl,
       distanceMeters: coursePayload.distanceMeter,
       elevationGainMeters: coursePayload.elevationGainMeter,
-      message: '¡Trayecto enviado con éxito a tu cuenta de Garmin Connect con distancia y desnivel oficial!',
+      coursePointsCount: formattedCoursePoints.length,
+      message: formattedCoursePoints.length > 0
+        ? `¡Trayecto enviado a Garmin Connect con ${formattedCoursePoints.length} avisos de nutrición e hidratación programados!`
+        : '¡Trayecto enviado con éxito a tu cuenta de Garmin Connect con distancia y desnivel oficial!',
     });
   } catch (error: any) {
     console.error('Error enviando curso a Garmin:', error);
