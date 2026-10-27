@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BiometricMetrics, 
   ActivitySession, 
@@ -29,7 +29,9 @@ import {
   Sparkles,
   Watch,
   Upload,
-  Radio
+  Radio,
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { getSportVisual } from './ActivityFeed';
 import { PerformanceChart } from './PerformanceChart';
@@ -47,6 +49,7 @@ interface CorosDashboardProps {
   habit: NonZeroHabit;
   onNavigateTab: (tab: 'coach' | 'biometrics' | 'routes' | 'events' | 'activities') => void;
   onOpenSync?: (tab?: 'garmin' | 'coros' | 'igpsport' | 'strava') => void;
+  onRefreshData?: () => Promise<void>;
   currentUser?: UserSessionPayload | null;
 }
 
@@ -56,8 +59,34 @@ export function CorosDashboard({
   habit,
   onNavigateTab,
   onOpenSync,
+  onRefreshData,
   currentUser,
 }: CorosDashboardProps) {
+  const [isSyncingGarmin, setIsSyncingGarmin] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  const handleQuickGarminSync = async () => {
+    setIsSyncingGarmin(true);
+    setSyncFeedback(null);
+    try {
+      const res = await fetch('/api/garmin/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSyncFeedback(`¡Sincronizado! Se han importado ${data.activitiesCount} actividades reales de Garmin.`);
+        if (onRefreshData) {
+          await onRefreshData();
+        }
+        setTimeout(() => setSyncFeedback(null), 5000);
+      } else {
+        setSyncFeedback(`Aviso: ${data.error || 'No se pudieron descargar las actividades.'}`);
+      }
+    } catch {
+      setSyncFeedback('Error de conexión al sincronizar con Garmin.');
+    } finally {
+      setIsSyncingGarmin(false);
+    }
+  };
+
   // Última actividad real registrada
   const latestActivity = activities.length > 0 ? activities[0] : null;
   const latestVisual = latestActivity ? getSportVisual(latestActivity.sport, latestActivity.title) : null;
@@ -187,14 +216,19 @@ export function CorosDashboard({
               <span>Sincronizar iGPSPORT</span>
             </button>
 
-            {/* Botón Garmin Connect */}
+            {/* Botón Sincronización Rápida Garmin Connect */}
             <button
-              onClick={() => onOpenSync && onOpenSync('garmin')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all active:scale-[0.98] touch-target shadow-2xs"
-              title="Sincronizar con cuenta de Garmin Connect"
+              onClick={handleQuickGarminSync}
+              disabled={isSyncingGarmin}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 text-xs font-bold transition-all active:scale-[0.98] touch-target shadow-2xs disabled:opacity-60"
+              title="Sincronizar directamente con Garmin Connect para descargar tus últimas actividades reales"
             >
-              <Radio className="w-4 h-4 text-sky-400 stroke-[2]" />
-              <span>Garmin Connect</span>
+              {isSyncingGarmin ? (
+                <RefreshCw className="w-4 h-4 text-sky-400 animate-spin" />
+              ) : (
+                <Radio className="w-4 h-4 text-sky-400 stroke-[2]" />
+              )}
+              <span>{isSyncingGarmin ? 'Sincronizando...' : 'Sincronizar Garmin'}</span>
             </button>
 
             {/* Botón Subir Archivo Manual */}
@@ -208,6 +242,23 @@ export function CorosDashboard({
             </button>
           </div>
         </div>
+
+        {/* Feedback visual de sincronización Garmin */}
+        {syncFeedback && (
+          <div className="relative z-10 mt-3 p-3 rounded-xl bg-sky-950/80 border border-sky-500/40 text-xs text-sky-200 flex items-center justify-between shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+              <span className="font-medium">{syncFeedback}</span>
+            </div>
+            <button 
+              onClick={() => setSyncFeedback(null)} 
+              className="text-sky-400 hover:text-white p-1 rounded-md transition-colors"
+              aria-label="Cerrar aviso"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
       </div>
 
@@ -342,22 +393,32 @@ export function CorosDashboard({
 
                 {/* Métricas clave */}
                 <div className="grid grid-cols-3 sm:flex sm:items-center gap-3 sm:gap-5 text-xs text-slate-700 dark:text-slate-300 tabular-nums border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-200 dark:border-slate-800">
-                  {latestActivity.distanceKm && (
+                  {latestActivity.distanceKm ? (
                     <div>
                       <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold block">Distancia</span>
                       <strong className="text-sm sm:text-base font-black text-slate-900 dark:text-white">{latestActivity.distanceKm} km</strong>
                     </div>
-                  )}
+                  ) : latestActivity.avgHr ? (
+                    <div>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold block">FC Media</span>
+                      <strong className="text-sm sm:text-base font-black text-slate-900 dark:text-white">{latestActivity.avgHr} bpm</strong>
+                    </div>
+                  ) : null}
                   <div>
                     <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold block">Tiempo</span>
                     <strong className="text-sm sm:text-base font-black text-slate-900 dark:text-white">{latestActivity.durationMin} min</strong>
                   </div>
-                  {latestActivity.avgPaceOrSpeed && (
+                  {latestActivity.avgPaceOrSpeed ? (
                     <div>
                       <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold block">Ritmo / Vel</span>
                       <strong className="text-sm sm:text-base font-black text-slate-900 dark:text-white">{latestActivity.avgPaceOrSpeed}</strong>
                     </div>
-                  )}
+                  ) : latestActivity.calories ? (
+                    <div>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold block">Calorías</span>
+                      <strong className="text-sm sm:text-base font-black text-slate-900 dark:text-white">{latestActivity.calories} kcal</strong>
+                    </div>
+                  ) : null}
                   {latestActivity.elevationGainM && (
                     <div>
                       <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold block">Desnivel</span>

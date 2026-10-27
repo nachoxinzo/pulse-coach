@@ -140,7 +140,17 @@ export function getSportVisual(sport: string, title?: string): SportVisual {
   }
 
   // 8. Fuerza / Gimnasio
-  if (s === 'strength_mobility' || t.includes('fuerza') || t.includes('pesas') || t.includes('gimnasio')) {
+  if (
+    s === 'strength_mobility' || 
+    t.includes('fuerza') || 
+    t.includes('pesas') || 
+    t.includes('gimnasio') || 
+    t.includes('rutina') || 
+    t.includes('hevy') || 
+    t.includes('core') || 
+    t.includes('empuje') || 
+    t.includes('tirón')
+  ) {
     return {
       icon: Dumbbell,
       label: 'Fuerza / Gimnasio',

@@ -24,6 +24,7 @@ export interface BiometricMetrics {
   acwr: number; // Acute:Chronic Workload Ratio (0.8 - 1.3 ideal)
   acwrStatus: 'recuperacion' | 'optimo' | 'sobrecarga' | 'alto_riesgo';
   vo2Max: number;
+  updatedAt?: string;
 }
 
 export interface ActivitySession {

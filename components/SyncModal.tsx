@@ -47,7 +47,8 @@ export function SyncModal({ isOpen, onClose, onSyncSuccess, initialTab = 'coros'
       const res = await fetch('/api/garmin/sync', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        setSyncStatusMsg(`¡Éxito! Se han importado ${data.activitiesCount} actividades reales de tu cuenta de Garmin.`);
+        const latestInfo = data.activities?.[0] ? ` (Última: "${data.activities[0].title}", ${data.activities[0].date})` : '';
+        setSyncStatusMsg(`¡Éxito! Se han importado ${data.activitiesCount} actividades reales de tu cuenta de Garmin${latestInfo}.`);
         if (onSyncSuccess) onSyncSuccess();
       } else {
         setSyncStatusMsg(`Aviso: ${data.error || 'No se pudieron descargar las actividades.'}`);

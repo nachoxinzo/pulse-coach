@@ -214,7 +214,7 @@ export async function getUserBiometrics(userId: string): Promise<BiometricMetric
     sql: `
       SELECT body_battery, body_battery_trend, hrv_status, hrv_value_ms, sleep_score,
              sleep_hours, deep_sleep_hours, stress_level, training_readiness,
-             acute_load, chronic_load, acwr, acwr_status, vo2_max
+             acute_load, chronic_load, acwr, acwr_status, vo2_max, updated_at
       FROM biometric_metrics 
       WHERE user_id = ? 
       ORDER BY updated_at DESC LIMIT 1
@@ -240,6 +240,7 @@ export async function getUserBiometrics(userId: string): Promise<BiometricMetric
     acwr: Number(row.acwr),
     acwrStatus: String(row.acwr_status) as any,
     vo2Max: Number(row.vo2_max),
+    updatedAt: row.updated_at ? String(row.updated_at) : undefined,
   };
 }
 

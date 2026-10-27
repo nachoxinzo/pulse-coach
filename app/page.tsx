@@ -226,6 +226,7 @@ export default function Home() {
                 habit={habit}
                 onNavigateTab={(tab) => setActiveTab(tab)}
                 onOpenSync={handleOpenSync}
+                onRefreshData={loadUserData}
                 currentUser={currentUser}
               />
             )}
