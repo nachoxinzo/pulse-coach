@@ -332,8 +332,8 @@ export async function generateRealRoadLoop(
         : 'shortest';
 
     // 1. Intentar con BRouter (prioriza highway=track, highway=path y caminos de tierra frente a carreteras asfaltadas)
-    try {
-      const lonlats = waypointsLngLat
+    const fetchBrouter = async (pts: [number, number][]) => {
+      const lonlats = pts
         .map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`)
         .join('|');
       const brouterUrl = `https://brouter.de/brouter?lonlats=${lonlats}&profile=${brouterProfile}&alternativeidx=0&format=geojson`;
@@ -341,62 +341,77 @@ export async function generateRealRoadLoop(
       const timeoutId = setTimeout(() => controller.abort(), 5500);
       const res = await fetch(brouterUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.features?.[0] || null;
+    };
 
-      if (res.ok) {
-        const data = await res.json();
-        const feat = data?.features?.[0];
-        if (feat && feat.geometry?.coordinates?.length > 1) {
-          const trackLengthM = parseFloat(feat.properties?.['track-length']) || 0;
-          const filteredAscendM = parseFloat(feat.properties?.['filtered ascend']) || 0;
+    try {
+      let feat = await fetchBrouter(waypointsLngLat);
+      // Si algún vértice intermedio cayó en medio del monte lejos de una pista mapeada (>250m),
+      // desplazar ligeramente los puntos intermedios (~350m) para enganchar la pista forestal más cercana en BRouter
+      if (!feat && waypointsLngLat.length > 2) {
+        const nudged = waypointsLngLat.map(([lon, lat], idx) => {
+          if (idx === 0 || idx === waypointsLngLat.length - 1) return [lon, lat] as [number, number];
+          return [lon + 0.0035, lat - 0.0030] as [number, number];
+        });
+        feat = await fetchBrouter(nudged);
+      }
 
-          // Analizar el desglose real de superficie a partir de las etiquetas OSM de cada tramo (messages)
-          let surfaceBreakdown: string | undefined;
-          const msgs: any[] = feat.properties?.messages;
-          if (Array.isArray(msgs) && msgs.length > 1) {
-            let trackMeters = 0;
-            let pathMeters = 0;
-            let roadMeters = 0;
-            for (let i = 1; i < msgs.length; i++) {
-              const segMeters = parseFloat(msgs[i][3]) || 0;
-              const tags = String(msgs[i][9] || '');
-              if (
-                tags.includes('highway=path') ||
-                tags.includes('highway=footway') ||
-                tags.includes('highway=bridleway') ||
-                tags.includes('highway=steps')
-              ) {
-                pathMeters += segMeters;
-              } else if (
-                tags.includes('highway=track') ||
-                tags.includes('surface=ground') ||
-                tags.includes('surface=dirt') ||
-                tags.includes('surface=earth') ||
-                tags.includes('surface=gravel') ||
-                tags.includes('surface=unpaved') ||
-                tags.includes('surface=compacted') ||
-                tags.includes('surface=fine_gravel')
-              ) {
-                trackMeters += segMeters;
-              } else {
-                roadMeters += segMeters;
-              }
-            }
-            const totalM = trackMeters + pathMeters + roadMeters;
-            if (totalM > 0 && isMountainSport) {
-              const pctTrack = Math.round((trackMeters / totalM) * 100);
-              const pctPath = Math.round((pathMeters / totalM) * 100);
-              const pctRoad = Math.max(0, 100 - pctTrack - pctPath);
-              surfaceBreakdown = `${pctTrack}% Pista de monte · ${pctPath}% Sendero · ${pctRoad}% Enlace`;
+      if (feat && feat.geometry?.coordinates?.length > 1) {
+        const trackLengthM = parseFloat(feat.properties?.['track-length']) || 0;
+        const filteredAscendM = parseFloat(feat.properties?.['filtered ascend']) || 0;
+
+        // Analizar el desglose real de superficie a partir de las etiquetas OSM de cada tramo (messages)
+        let surfaceBreakdown: string | undefined;
+        let offroadPct = 0;
+        const msgs: any[] = feat.properties?.messages;
+        if (Array.isArray(msgs) && msgs.length > 1) {
+          let trackMeters = 0;
+          let pathMeters = 0;
+          let roadMeters = 0;
+          for (let i = 1; i < msgs.length; i++) {
+            const segMeters = parseFloat(msgs[i][3]) || 0;
+            const tags = String(msgs[i][9] || '');
+            if (
+              tags.includes('highway=path') ||
+              tags.includes('highway=footway') ||
+              tags.includes('highway=bridleway') ||
+              tags.includes('highway=steps')
+            ) {
+              pathMeters += segMeters;
+            } else if (
+              tags.includes('highway=track') ||
+              tags.includes('surface=ground') ||
+              tags.includes('surface=dirt') ||
+              tags.includes('surface=earth') ||
+              tags.includes('surface=gravel') ||
+              tags.includes('surface=unpaved') ||
+              tags.includes('surface=compacted') ||
+              tags.includes('surface=fine_gravel')
+            ) {
+              trackMeters += segMeters;
+            } else {
+              roadMeters += segMeters;
             }
           }
-
-          return {
-            distance: trackLengthM,
-            geometry: feat.geometry,
-            brouterAscentM: filteredAscendM,
-            brouterSurfaceBreakdown: surfaceBreakdown,
-          };
+          const totalM = trackMeters + pathMeters + roadMeters;
+          if (totalM > 0 && isMountainSport) {
+            const pctTrack = Math.round((trackMeters / totalM) * 100);
+            const pctPath = Math.round((pathMeters / totalM) * 100);
+            const pctRoad = Math.max(0, 100 - pctTrack - pctPath);
+            offroadPct = pctTrack + pctPath;
+            surfaceBreakdown = `${pctTrack}% Pista de monte · ${pctPath}% Sendero · ${pctRoad}% Enlace`;
+          }
         }
+
+        return {
+          distance: trackLengthM,
+          geometry: feat.geometry,
+          brouterAscentM: filteredAscendM,
+          brouterSurfaceBreakdown: surfaceBreakdown,
+          offroadPct,
+        };
       }
     } catch {
       // Continuar con fallback OSRM
@@ -549,16 +564,23 @@ export async function generateRealRoadLoop(
             bestRouteData = route;
           }
 
+          // Si en el primer intento fuera de Xinzo el rodeo cruza un cañón/río (>1.85x) o tiene poco porcentaje de tierra (<55%),
+          // probamos el siguiente sector de montaña detectado por el radar topográfico
+          if (
+            !isXinzoArea &&
+            isMountainSport &&
+            attempt === 0 &&
+            (distKm > targetDistanceKm * 1.85 || (typeof route.offroadPct === 'number' && route.offroadPct < 55))
+          ) {
+            activeSeed = activeSeed + 1;
+            bestRouteData = route;
+            continue;
+          }
+
           // Si la distancia calculada está dentro del 8% de la distancia objetivo, la aceptamos
           const diffPct = Math.abs(distKm - targetDistanceKm) / targetDistanceKm;
           if (diffPct <= 0.08) {
             break;
-          }
-
-          // Si el rodeo supera 2.2x el objetivo (ej. río o embalse sin puente cercano), probar el siguiente sector de monte
-          if (!isXinzoArea && distKm > targetDistanceKm * 2.2 && attempt === 0) {
-            activeSeed = activeSeed + 1;
-            continue;
           }
 
           // Corregir la escala para el siguiente intento

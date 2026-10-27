@@ -263,25 +263,55 @@ export function RouteExplorer({
     };
   }, [explorerMode, userLocation, distanceKm, sport, seedVariant, customStart, customViaPoints, customEnd]);
 
-  // 2. En modo 'database', cargar la ruta oficial seleccionada
-  const handleSelectOfficialTrail = (trail: OfficialTrailRoute) => {
+  // 2. En modo 'database', cargar la ruta oficial seleccionada trazándola por caminos reales con el motor Off-Road BRouter
+  const handleSelectOfficialTrail = async (trail: OfficialTrailRoute) => {
     setSelectedTrailId(trail.id);
     setUserLocation({ lat: trail.startCoords[0], lng: trail.startCoords[1] });
     setLocationLabel(trail.region);
     setSport(trail.category);
+    setIsCalculatingRoute(true);
 
-    setRoute({
-      id: trail.id,
-      name: trail.name,
-      sport: trail.category,
-      distanceKm: trail.distanceKm,
-      elevationGainM: trail.elevationGainM,
-      estimatedTimeMin: trail.estimatedTimeMin,
-      terrainType: `${trail.terrainBreakdown.trailPercent}% Sendero / ${trail.terrainBreakdown.trackPercent}% Pista de tierra / ${trail.terrainBreakdown.roadPercent}% Asfalto`,
-      coordinates: trail.coordinates,
-      elevationProfile: trail.elevationProfile,
-      gpxContent: trail.gpxContent,
-    });
+    // Asignar el corredor de monte real según la ruta oficial elegida
+    const sectorSeed =
+      trail.id === 'trail-mtb-furriolo'
+        ? 1 // Montes de Allariz / Furriolo (NO)
+        : trail.id === 'trail-run-viaplata'
+        ? 1 // Vía da Plata / Sandiás (NO)
+        : trail.id === 'trail-mtb-limia-antela'
+        ? 0 // Monte de Baronzás / Pidre / Antela (NE)
+        : 2;
+
+    try {
+      const offroadCalculated = await generateRealRoadLoop(
+        trail.startCoords[0],
+        trail.startCoords[1],
+        trail.distanceKm,
+        trail.category,
+        sectorSeed
+      );
+
+      setRoute({
+        ...offroadCalculated,
+        id: trail.id,
+        name: trail.name,
+        sport: trail.category,
+      });
+    } catch {
+      setRoute({
+        id: trail.id,
+        name: trail.name,
+        sport: trail.category,
+        distanceKm: trail.distanceKm,
+        elevationGainM: trail.elevationGainM,
+        estimatedTimeMin: trail.estimatedTimeMin,
+        terrainType: `${trail.terrainBreakdown.trailPercent}% Sendero / ${trail.terrainBreakdown.trackPercent}% Pista de tierra / ${trail.terrainBreakdown.roadPercent}% Asfalto`,
+        coordinates: trail.coordinates,
+        elevationProfile: trail.elevationProfile,
+        gpxContent: trail.gpxContent,
+      });
+    } finally {
+      setIsCalculatingRoute(false);
+    }
   };
 
   // Al cambiar a modo database, activar la primera ruta del filtro
