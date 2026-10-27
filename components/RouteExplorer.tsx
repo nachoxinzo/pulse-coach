@@ -31,7 +31,9 @@ import {
   Share2,
   Smartphone,
   Flame,
-  Utensils
+  Utensils,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { DeviceSyncModal } from './DeviceSyncModal';
 import { RouteWeatherWidget } from './RouteWeatherWidget';
@@ -87,6 +89,7 @@ export function RouteExplorer({
 
   const [sport, setSport] = useState<SportType>(initialSport);
   const [distanceKm, setDistanceKm] = useState<number>(initialDistanceKm);
+  const [manualDistanceInput, setManualDistanceInput] = useState<string>(String(initialDistanceKm));
   const [seedVariant, setSeedVariant] = useState<number>(0);
   const [selectedZoneId, setSelectedZoneId] = useState<string>('xinzo');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 42.0630, lng: -7.7240 });
@@ -109,8 +112,22 @@ export function RouteExplorer({
 
   useEffect(() => {
     if (initialSport) setSport(initialSport);
-    if (initialDistanceKm) setDistanceKm(initialDistanceKm);
+    if (initialDistanceKm) {
+      setDistanceKm(initialDistanceKm);
+      setManualDistanceInput(String(initialDistanceKm));
+    }
   }, [initialSport, initialDistanceKm]);
+
+  // Sincronizar entrada manual de distancia con debounce
+  useEffect(() => {
+    const parsed = parseFloat(manualDistanceInput);
+    if (!isNaN(parsed) && parsed >= 3 && parsed <= 300 && parsed !== distanceKm) {
+      const timer = setTimeout(() => {
+        setDistanceKm(parsed);
+      }, 450);
+      return () => clearTimeout(timer);
+    }
+  }, [manualDistanceInput, distanceKm]);
 
   // Manejar cambio de zona de Galicia
   const handleSelectZone = (zoneId: string) => {
@@ -398,7 +415,7 @@ export function RouteExplorer({
                   
                   {/* Botón MTB / BTT */}
                   <button
-                    onClick={() => { setSport('mtb'); setDistanceKm(25); }}
+                    onClick={() => { setSport('mtb'); setDistanceKm(25); setManualDistanceInput('25'); }}
                     className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all touch-target ${
                       sport === 'mtb'
                         ? 'bg-orange-600 text-white shadow-xs'
@@ -411,7 +428,7 @@ export function RouteExplorer({
 
                   {/* Botón Trail Running */}
                   <button
-                    onClick={() => { setSport('trail'); setDistanceKm(14); }}
+                    onClick={() => { setSport('trail'); setDistanceKm(14); setManualDistanceInput('14'); }}
                     className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all touch-target ${
                       sport === 'trail'
                         ? 'bg-emerald-700 text-white shadow-xs'
@@ -424,7 +441,7 @@ export function RouteExplorer({
 
                   {/* Botón Ciclismo Carretera / Gravel */}
                   <button
-                    onClick={() => { setSport('cycling'); setDistanceKm(35); }}
+                    onClick={() => { setSport('cycling'); setDistanceKm(35); setManualDistanceInput('35'); }}
                     className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all touch-target ${
                       sport === 'cycling'
                         ? 'bg-sky-600 text-white shadow-xs'
@@ -437,7 +454,7 @@ export function RouteExplorer({
 
                   {/* Botón Running Asfalto */}
                   <button
-                    onClick={() => { setSport('running'); setDistanceKm(8); }}
+                    onClick={() => { setSport('running'); setDistanceKm(8); setManualDistanceInput('8'); }}
                     className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all touch-target ${
                       sport === 'running'
                         ? 'bg-indigo-600 text-white shadow-xs'
@@ -489,19 +506,26 @@ export function RouteExplorer({
               </button>
             </div>
 
-            {/* Selector de Distancia */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
+            {/* Selector y Ajuste Manual de Distancia */}
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Distancia Objetivo: <span className="text-slate-900 font-extrabold tabular-nums">{distanceKm} km</span>
                 </label>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Elige un acceso rápido o escribe tu distancia personalizada
+                </span>
               </div>
 
+              {/* Botones de Acceso Rápido (Presets) */}
               <div className="flex items-center gap-2">
                 {distancePresets.map((kms) => (
                   <button
                     key={kms}
-                    onClick={() => setDistanceKm(kms)}
+                    onClick={() => {
+                      setDistanceKm(kms);
+                      setManualDistanceInput(String(kms));
+                    }}
                     className={`flex-1 py-2 px-1 rounded-lg text-xs font-bold transition-all text-center touch-target ${
                       distanceKm === kms
                         ? 'bg-slate-900 text-white shadow-xs'
@@ -511,6 +535,66 @@ export function RouteExplorer({
                     {kms} km
                   </button>
                 ))}
+              </div>
+
+              {/* Campo para Establecer Distancia Manualmente */}
+              <div className="flex items-center justify-between gap-2 p-2.5 bg-slate-50/90 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-1.5 pl-1">
+                  <span className="text-xs font-bold text-slate-800">
+                    Distancia manual personalizada:
+                  </span>
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">
+                    (teclea cualquier valor entre 3 y 300 km)
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const step = sport === 'cycling' ? 5 : 2;
+                      const next = Math.max(3, distanceKm - step);
+                      setDistanceKm(next);
+                      setManualDistanceInput(String(next));
+                    }}
+                    className="w-8 h-8 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm transition-all shadow-xs active:scale-95 touch-target"
+                    title={`Restar ${sport === 'cycling' ? 5 : 2} km`}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      min={3}
+                      max={300}
+                      step={1}
+                      value={manualDistanceInput}
+                      onChange={(e) => {
+                        setManualDistanceInput(e.target.value);
+                      }}
+                      className="w-20 px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-center font-black text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 tabular-nums shadow-xs pr-7"
+                      placeholder="Km"
+                    />
+                    <span className="absolute right-2 text-xs font-bold text-slate-400 pointer-events-none">
+                      km
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const step = sport === 'cycling' ? 5 : 2;
+                      const next = Math.min(300, distanceKm + step);
+                      setDistanceKm(next);
+                      setManualDistanceInput(String(next));
+                    }}
+                    className="w-8 h-8 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm transition-all shadow-xs active:scale-95 touch-target"
+                    title={`Sumar ${sport === 'cycling' ? 5 : 2} km`}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
