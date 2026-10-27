@@ -16,14 +16,8 @@ export const XINZO_MOUNTAIN_SECTORS = [
     name: 'Montes de Baronzás, Boado, Pidre & San Mamede (Noreste)',
     shortName: 'Monte de Baronzás, Pidre & San Mamede (NE)',
     description: 'Pistas forestales, senderos de monte y cortafuegos entre Baronzás, Boado, Pidre y Laroá evitando la carretera OU-1102.',
-    approach: [-7.7050, 42.0685] as [number, number],
-    returnPt: [-7.6930, 42.0665] as [number, number],
-    baseLat: 42.0755,
-    baseLng: -7.6915,
-    dirLat: 0.038,
-    dirLng: 0.034,
-    perpLat: -0.005,
-    perpLng: 0.005,
+    targetLat: 42.0710,
+    targetLng: -7.6920,
     titlePrefix: 'Ruta Monte de Baronzás, Pidre & Laroá',
   },
   {
@@ -31,14 +25,8 @@ export const XINZO_MOUNTAIN_SECTORS = [
     name: 'Montes de Allariz & Vilar de Santos (Noroeste)',
     shortName: 'Montes de Allariz & Vilar de Santos (NO)',
     description: 'Pistas forestales y senderos en la Reserva da Biosfera de Allariz, subiendo por Vilar de Santos hacia cotas de 850m-900m.',
-    approach: [-7.7520, 42.0740] as [number, number],
-    returnPt: [-7.7550, 42.0680] as [number, number],
-    baseLat: 42.0860,
-    baseLng: -7.7780,
-    dirLat: 0.034,
-    dirLng: -0.026,
-    perpLat: 0.006,
-    perpLng: 0.006,
+    targetLat: 42.0880,
+    targetLng: -7.7820,
     titlePrefix: 'Ruta Montes de Allariz & Vilar de Santos',
   },
   {
@@ -46,14 +34,8 @@ export const XINZO_MOUNTAIN_SECTORS = [
     name: 'Serra de Cualedro & Montes de Larouco (Sureste)',
     shortName: 'Serra de Cualedro (SE)',
     description: 'Crestas de montaña, parques eólicos y pistas de monte de Cualedro y San Martiño (800m-1000m).',
-    approach: [-7.7080, 42.0460] as [number, number],
-    returnPt: [-7.7150, 42.0450] as [number, number],
-    baseLat: 42.0250,
-    baseLng: -7.6850,
-    dirLat: -0.035,
-    dirLng: 0.028,
-    perpLat: 0.006,
-    perpLng: 0.006,
+    targetLat: 42.0250,
+    targetLng: -7.6850,
     titlePrefix: 'Ruta Serra de Cualedro & Larouco',
   },
   {
@@ -61,14 +43,8 @@ export const XINZO_MOUNTAIN_SECTORS = [
     name: 'Montes de Rairiz de Veiga & Leboreiro (Suroeste)',
     shortName: 'Montes de Rairiz (SO)',
     description: 'Senderos tradicionales y pistas de monte hacia Congostro y la falda de la Serra do Leboreiro (750m-950m).',
-    approach: [-7.7520, 42.0540] as [number, number],
-    returnPt: [-7.7480, 42.0480] as [number, number],
-    baseLat: 42.0420,
-    baseLng: -7.7780,
-    dirLat: -0.028,
-    dirLng: -0.030,
-    perpLat: 0.006,
-    perpLng: -0.006,
+    targetLat: 42.0420,
+    targetLng: -7.7780,
     titlePrefix: 'Ruta Montes de Rairiz & Leboreiro',
   },
 ];
@@ -255,45 +231,34 @@ export async function generateRealRoadLoop(
     detectedMountainAngles = await findBestMountainAngles(refLat, refLng, Math.max(5.5, targetDistanceKm * 0.28));
   }
 
-  // 1. CONSTRUCCIÓN DE WAYPOINTS PARA MTB Y TRAIL (INCURSIÓN EN MONTAÑA SIN PUNTOS MANUALES)
+  // 1. CONSTRUCCIÓN DE WAYPOINTS PARA MTB Y TRAIL (INCURSIÓN EN MONTAÑA CON ESCALADO PROPORCIONAL A LA DISTANCIA)
   const buildMountainWaypoints = (scaleFactor: number, seed: number): [number, number][] => {
+    let baseAngle: number;
     if (isXinzoArea) {
-      // Usar los corredores reales de montaña de Xinzo de Limia
       const sector = XINZO_MOUNTAIN_SECTORS[seed % XINZO_MOUNTAIN_SECTORS.length];
       customRouteTitle = `${sport === 'mtb' ? 'Ruta BTT' : 'Trail'} ${sector.shortName}`;
-
-      const apexLat = sector.baseLat + sector.dirLat * scaleFactor;
-      const apexLng = sector.baseLng + sector.dirLng * scaleFactor;
-
-      const m1: [number, number] = [apexLng - sector.perpLng, apexLat - sector.perpLat];
-      const m2: [number, number] = [apexLng + sector.perpLng, apexLat + sector.perpLat];
-
-      return [
-        [startLng, startLat],
-        sector.approach,
-        m1,
-        m2,
-        sector.returnPt,
-        [startLng, startLat],
-      ];
+      baseAngle = Math.atan2(
+        (sector.targetLat - startLat) / latDeltaPerKm,
+        (sector.targetLng - startLng) / lngDeltaPerKm
+      );
     } else {
-      // Fuera de Xinzo: usar el ángulo de mayor ganancia topográfica real detectado por Open-Meteo DEM
-      const baseAngle = detectedMountainAngles[seed % Math.min(6, detectedMountainAngles.length)];
+      baseAngle = detectedMountainAngles[seed % Math.min(6, detectedMountainAngles.length)];
       customRouteTitle = `${sport === 'mtb' ? 'Ruta BTT Incursión en Sierra' : 'Trail de Montaña'}`;
-
-      // Cota alta en la sierra (dos vértices en el monte para trazar un bucle limpio sin callejones sin salida duplicados)
-      const peakKm = Math.max(0.6, targetDistanceKm * 0.22 * scaleFactor);
-      const wpPeak1: [number, number] = [
-        startLng + peakKm * Math.cos(baseAngle + 0.28) * lngDeltaPerKm,
-        startLat + peakKm * Math.sin(baseAngle + 0.28) * latDeltaPerKm,
-      ];
-      const wpPeak2: [number, number] = [
-        startLng + (peakKm * 0.95) * Math.cos(baseAngle - 0.28) * lngDeltaPerKm,
-        startLat + (peakKm * 0.95) * Math.sin(baseAngle - 0.28) * latDeltaPerKm,
-      ];
-
-      return [[startLng, startLat], wpPeak1, wpPeak2, [startLng, startLat]];
     }
+
+    // Alcance proporcional desde el punto de salida hacia el sector de montaña elegido:
+    // se escala libremente para cualquier distancia objetivo (desde 3 km hasta 300 km)
+    const peakKm = Math.max(0.4, targetDistanceKm * 0.24 * scaleFactor);
+    const wpPeak1: [number, number] = [
+      startLng + peakKm * Math.cos(baseAngle + 0.22) * lngDeltaPerKm,
+      startLat + peakKm * Math.sin(baseAngle + 0.22) * latDeltaPerKm,
+    ];
+    const wpPeak2: [number, number] = [
+      startLng + (peakKm * 0.95) * Math.cos(baseAngle - 0.22) * lngDeltaPerKm,
+      startLat + (peakKm * 0.95) * Math.sin(baseAngle - 0.22) * latDeltaPerKm,
+    ];
+
+    return [[startLng, startLat], wpPeak1, wpPeak2, [startLng, startLat]];
   };
 
   // 2. CONSTRUCCIÓN DE WAYPOINTS PARA CARRETERA Y RUNNING (POLÍGONO EQUILIBRADO)
@@ -543,10 +508,8 @@ export async function generateRealRoadLoop(
       // ============================================================================
       // MODO BUCLE AUTOMÁTICO CON PRIORIDAD DE MONTAÑA (MTB/TRAIL) O COMARCAL (CARRETERA)
       // ============================================================================
-      let currentMountainScale = isXinzoArea
-        ? Math.max(0.12, (targetDistanceKm - 10) / 24)
-        : 0.85;
-      let currentRoadRadius = Math.max(1.0, targetDistanceKm / (sport === 'cycling' ? 7.2 : 6.8));
+      let currentMountainScale = 1.0;
+      let currentRoadRadius = Math.max(0.6, targetDistanceKm / (sport === 'cycling' ? 7.2 : 6.8));
       let activeSeed = seedVariant;
 
       for (let attempt = 0; attempt < 3; attempt++) {
