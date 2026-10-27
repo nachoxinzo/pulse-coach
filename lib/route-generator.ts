@@ -12,64 +12,64 @@ export interface CustomRouteWaypoints {
 // Sectores de Montaña de Referencia para Xinzo de Limia (A Limia / Ourense)
 export const XINZO_MOUNTAIN_SECTORS = [
   {
-    id: 'allariz',
-    name: 'Montes de Allariz & Vilar de Santos (Noroeste)',
-    shortName: 'Montes de Allariz (NO)',
-    description: 'Pistas forestales y senderos en la Reserva da Biosfera de Allariz, subiendo por Vilar de Santos hacia cotas de 850m-900m.',
-    approach: [-7.7820, 42.0820] as [number, number],
-    returnPt: [-7.7720, 42.0780] as [number, number],
-    baseLat: 42.0820,
-    baseLng: -7.7820,
-    dirLat: 0.042,
-    dirLng: -0.020,
-    perpLat: 0.008,
-    perpLng: 0.008,
-    titlePrefix: 'Ruta BTT Montes de Allariz & Vilar de Santos',
+    id: 'san_mamede',
+    name: 'Montes de Baronzás, Boado, Pidre & San Mamede (Noreste)',
+    shortName: 'Monte de Baronzás, Pidre & San Mamede (NE)',
+    description: 'Pistas forestales, senderos de monte y cortafuegos entre Baronzás, Boado, Pidre y Laroá evitando la carretera OU-1102.',
+    approach: [-7.7050, 42.0685] as [number, number],
+    returnPt: [-7.6930, 42.0665] as [number, number],
+    baseLat: 42.0755,
+    baseLng: -7.6915,
+    dirLat: 0.038,
+    dirLng: 0.034,
+    perpLat: -0.005,
+    perpLng: 0.005,
+    titlePrefix: 'Ruta Monte de Baronzás, Pidre & Laroá',
   },
   {
-    id: 'san_mamede',
-    name: 'Falda de San Mamede & Montes de Laroá (Noreste)',
-    shortName: 'Serra de San Mamede (NE)',
-    description: 'Pistas de tierra y cortafuegos hacia la vertiente sur de San Mamede, subiendo hacia Codosedo y Laroá (850m-1050m).',
-    approach: [-7.6750, 42.0900] as [number, number],
-    returnPt: [-7.6850, 42.0800] as [number, number],
-    baseLat: 42.0900,
-    baseLng: -7.6750,
-    dirLat: 0.045,
-    dirLng: 0.035,
-    perpLat: -0.008,
-    perpLng: 0.008,
-    titlePrefix: 'Ruta BTT Serra de San Mamede & Laroá',
+    id: 'allariz',
+    name: 'Montes de Allariz & Vilar de Santos (Noroeste)',
+    shortName: 'Montes de Allariz & Vilar de Santos (NO)',
+    description: 'Pistas forestales y senderos en la Reserva da Biosfera de Allariz, subiendo por Vilar de Santos hacia cotas de 850m-900m.',
+    approach: [-7.7520, 42.0740] as [number, number],
+    returnPt: [-7.7550, 42.0680] as [number, number],
+    baseLat: 42.0860,
+    baseLng: -7.7780,
+    dirLat: 0.034,
+    dirLng: -0.026,
+    perpLat: 0.006,
+    perpLng: 0.006,
+    titlePrefix: 'Ruta Montes de Allariz & Vilar de Santos',
   },
   {
     id: 'cualedro',
     name: 'Serra de Cualedro & Montes de Larouco (Sureste)',
     shortName: 'Serra de Cualedro (SE)',
     description: 'Crestas de montaña, parques eólicos y pistas de monte de Cualedro y San Martiño (800m-1000m).',
-    approach: [-7.6850, 42.0200] as [number, number],
-    returnPt: [-7.6950, 42.0300] as [number, number],
-    baseLat: 42.0200,
+    approach: [-7.7080, 42.0460] as [number, number],
+    returnPt: [-7.7150, 42.0450] as [number, number],
+    baseLat: 42.0250,
     baseLng: -7.6850,
-    dirLat: -0.045,
-    dirLng: 0.030,
-    perpLat: 0.008,
-    perpLng: 0.008,
-    titlePrefix: 'Ruta BTT Serra de Cualedro & Larouco',
+    dirLat: -0.035,
+    dirLng: 0.028,
+    perpLat: 0.006,
+    perpLng: 0.006,
+    titlePrefix: 'Ruta Serra de Cualedro & Larouco',
   },
   {
     id: 'rairiz',
     name: 'Montes de Rairiz de Veiga & Leboreiro (Suroeste)',
     shortName: 'Montes de Rairiz (SO)',
     description: 'Senderos tradicionales y pistas de monte hacia Congostro y la falda de la Serra do Leboreiro (750m-950m).',
-    approach: [-7.7800, 42.0400] as [number, number],
-    returnPt: [-7.7700, 42.0500] as [number, number],
-    baseLat: 42.0400,
-    baseLng: -7.7800,
-    dirLat: -0.035,
-    dirLng: -0.040,
-    perpLat: 0.008,
-    perpLng: -0.008,
-    titlePrefix: 'Ruta BTT Montes de Rairiz & Leboreiro',
+    approach: [-7.7520, 42.0540] as [number, number],
+    returnPt: [-7.7480, 42.0480] as [number, number],
+    baseLat: 42.0420,
+    baseLng: -7.7780,
+    dirLat: -0.028,
+    dirLng: -0.030,
+    perpLat: 0.006,
+    perpLng: -0.006,
+    titlePrefix: 'Ruta Montes de Rairiz & Leboreiro',
   },
 ];
 
@@ -319,8 +319,90 @@ export async function generateRealRoadLoop(
     return [[startLng, startLat], wp1, wp2, [startLng, startLat]];
   };
 
-  // Función auxiliar para consultar OSRM dado un array de waypoints [lng, lat]
+  // Función auxiliar para consultar BRouter (especialista en pistas/senderos OSM: mtb, hiking-mountain, fastbike-lowtraffic)
+  // con fallback automático a OSRM si BRouter no responde.
   const queryOsrm = async (waypointsLngLat: [number, number][]) => {
+    const brouterProfile =
+      sport === 'mtb'
+        ? 'mtb'
+        : sport === 'trail' || sport === 'hiking'
+        ? 'hiking-mountain'
+        : sport === 'cycling'
+        ? 'fastbike-lowtraffic'
+        : 'shortest';
+
+    // 1. Intentar con BRouter (prioriza highway=track, highway=path y caminos de tierra frente a carreteras asfaltadas)
+    try {
+      const lonlats = waypointsLngLat
+        .map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`)
+        .join('|');
+      const brouterUrl = `https://brouter.de/brouter?lonlats=${lonlats}&profile=${brouterProfile}&alternativeidx=0&format=geojson`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5500);
+      const res = await fetch(brouterUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        const feat = data?.features?.[0];
+        if (feat && feat.geometry?.coordinates?.length > 1) {
+          const trackLengthM = parseFloat(feat.properties?.['track-length']) || 0;
+          const filteredAscendM = parseFloat(feat.properties?.['filtered ascend']) || 0;
+
+          // Analizar el desglose real de superficie a partir de las etiquetas OSM de cada tramo (messages)
+          let surfaceBreakdown: string | undefined;
+          const msgs: any[] = feat.properties?.messages;
+          if (Array.isArray(msgs) && msgs.length > 1) {
+            let trackMeters = 0;
+            let pathMeters = 0;
+            let roadMeters = 0;
+            for (let i = 1; i < msgs.length; i++) {
+              const segMeters = parseFloat(msgs[i][3]) || 0;
+              const tags = String(msgs[i][9] || '');
+              if (
+                tags.includes('highway=path') ||
+                tags.includes('highway=footway') ||
+                tags.includes('highway=bridleway') ||
+                tags.includes('highway=steps')
+              ) {
+                pathMeters += segMeters;
+              } else if (
+                tags.includes('highway=track') ||
+                tags.includes('surface=ground') ||
+                tags.includes('surface=dirt') ||
+                tags.includes('surface=earth') ||
+                tags.includes('surface=gravel') ||
+                tags.includes('surface=unpaved') ||
+                tags.includes('surface=compacted') ||
+                tags.includes('surface=fine_gravel')
+              ) {
+                trackMeters += segMeters;
+              } else {
+                roadMeters += segMeters;
+              }
+            }
+            const totalM = trackMeters + pathMeters + roadMeters;
+            if (totalM > 0 && isMountainSport) {
+              const pctTrack = Math.round((trackMeters / totalM) * 100);
+              const pctPath = Math.round((pathMeters / totalM) * 100);
+              const pctRoad = Math.max(0, 100 - pctTrack - pctPath);
+              surfaceBreakdown = `${pctTrack}% Pista de monte · ${pctPath}% Sendero · ${pctRoad}% Enlace`;
+            }
+          }
+
+          return {
+            distance: trackLengthM,
+            geometry: feat.geometry,
+            brouterAscentM: filteredAscendM,
+            brouterSurfaceBreakdown: surfaceBreakdown,
+          };
+        }
+      }
+    } catch {
+      // Continuar con fallback OSRM
+    }
+
+    // 2. Fallback: OSRM
     const coordString = waypointsLngLat
       .map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`)
       .join(';');
@@ -447,7 +529,7 @@ export async function generateRealRoadLoop(
       // MODO BUCLE AUTOMÁTICO CON PRIORIDAD DE MONTAÑA (MTB/TRAIL) O COMARCAL (CARRETERA)
       // ============================================================================
       let currentMountainScale = isXinzoArea
-        ? Math.max(0.35, (targetDistanceKm - 12) / 24)
+        ? Math.max(0.12, (targetDistanceKm - 10) / 24)
         : 0.85;
       let currentRoadRadius = Math.max(1.0, targetDistanceKm / (sport === 'cycling' ? 7.2 : 6.8));
       let activeSeed = seedVariant;
@@ -491,9 +573,13 @@ export async function generateRealRoadLoop(
     }
 
     if (bestRouteData) {
-      const rawCoords: [number, number][] = bestRouteData.geometry.coordinates;
-      const coords: [number, number][] = rawCoords.map(([lon, lat]) => [lat, lon]);
+      const rawCoords: number[][] = bestRouteData.geometry.coordinates;
+      const coords: [number, number][] = rawCoords.map((c) => [c[1], c[0]]);
       const actualDistanceKm = Math.round((bestRouteData.distance / 1000) * 10) / 10;
+
+      if (bestRouteData.brouterSurfaceBreakdown) {
+        terrainDescription = bestRouteData.brouterSurfaceBreakdown;
+      }
 
       let paceMinPerKm = 5.2;
       if (sport === 'cycling') paceMinPerKm = 2.4;
@@ -502,8 +588,12 @@ export async function generateRealRoadLoop(
 
       const estimatedTimeMin = Math.round(actualDistanceKm * paceMinPerKm);
 
-      // Obtener elevación DEM real de Open-Meteo
-      const realElevations = await fetchRealElevationForCoordinates(coords);
+      // Si BRouter ya devolvió elevación 3D SRTM en cada coordenada [lon, lat, ele], usarla directamente;
+      // de lo contrario consultar Open-Meteo Elevation DEM
+      const hasEmbedded3dEle = rawCoords.length > 0 && rawCoords[0].length >= 3 && typeof rawCoords[0][2] === 'number';
+      const realElevations = hasEmbedded3dEle
+        ? rawCoords.map((c) => Math.round(Number(c[2])))
+        : await fetchRealElevationForCoordinates(coords);
 
       const points: RoutePoint[] = [];
       const elevationProfile: { distanceKm: number; elevationM: number }[] = [];
@@ -525,12 +615,12 @@ export async function generateRealRoadLoop(
           const ele = realElevations[i];
           points.push({ lat, lng, elevationM: ele });
 
-          // Filtro de ruido de 1.5 metros para acumulación realista de desnivel (estándar Garmin / Strava)
+          // Filtro de ruido de 2.0 metros para acumulación realista de desnivel (estándar Garmin / Strava)
           const diff = ele - prevFilteredEle;
-          if (diff >= 1.5) {
+          if (diff >= 2.0) {
             totalAscentM += diff;
             prevFilteredEle = ele;
-          } else if (diff <= -1.5) {
+          } else if (diff <= -2.0) {
             prevFilteredEle = ele;
           }
 
@@ -540,6 +630,10 @@ export async function generateRealRoadLoop(
               elevationM: ele,
             });
           }
+        }
+
+        if (typeof bestRouteData.brouterAscentM === 'number' && bestRouteData.brouterAscentM > 0) {
+          totalAscentM = bestRouteData.brouterAscentM;
         }
       } else {
         // Fallback topográfico realista si la API de elevación no responde:
