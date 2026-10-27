@@ -38,6 +38,8 @@ import {
 import { DeviceSyncModal } from './DeviceSyncModal';
 import { RouteWeatherWidget } from './RouteWeatherWidget';
 import { RouteNutritionPlannerModal } from './RouteNutritionPlannerModal';
+import { extractClimbsFromProfile, DetectedClimb } from '@/lib/climb-detector';
+import { ClimbsPreviewSection } from './ClimbsPreviewSection';
 
 const PersonalHeatmap = dynamic(() => import('./PersonalHeatmap').then(m => m.PersonalHeatmap), {
   ssr: false,
@@ -109,6 +111,13 @@ export function RouteExplorer({
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
   const [isNutritionModalOpen, setIsNutritionModalOpen] = useState<boolean>(false);
+  const [selectedClimbId, setSelectedClimbId] = useState<string | null>(null);
+
+  // Detección de puertos y subidas para previsualización (ClimbPro preview)
+  const detectedClimbs = React.useMemo(() => {
+    if (!route || !route.elevationProfile || route.elevationProfile.length < 4) return [];
+    return extractClimbsFromProfile(route.elevationProfile, route.coordinates);
+  }, [route]);
 
   useEffect(() => {
     if (initialSport) setSport(initialSport);
@@ -914,6 +923,17 @@ export function RouteExplorer({
               <span>{(route.distanceKm / 2).toFixed(1)} km</span>
               <span>{route.distanceKm} km (Meta)</span>
             </div>
+          </div>
+        )}
+
+        {/* Previsualización de Puertos y Subidas (ClimbPro Preview) */}
+        {route && (
+          <div className="p-4 pt-0">
+            <ClimbsPreviewSection
+              climbs={detectedClimbs}
+              onSelectClimb={(climb) => setSelectedClimbId(climb.id)}
+              selectedClimbId={selectedClimbId}
+            />
           </div>
         )}
 
