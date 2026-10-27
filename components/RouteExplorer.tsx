@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { GeneratedRoute, OfficialTrailRoute, SportType } from '@/types';
-import { generateRealRoadLoop, DEFAULT_COORDS } from '@/lib/route-generator';
+import { generateRealRoadLoop, DEFAULT_COORDS, XINZO_MOUNTAIN_SECTORS } from '@/lib/route-generator';
 import { OFFICIAL_TRAILS_DATABASE } from '@/lib/trails-database';
 import { 
   Compass, 
@@ -481,13 +481,13 @@ export function RouteExplorer({
                   {sport === 'mtb' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-orange-50 text-orange-800 border border-orange-200">
                       <Trees className="w-3.5 h-3.5 text-orange-600" />
-                      <span>Prioridad Activa: Pistas de Monte, Cortafuegos y Caminos de Tierra (Serra de San Mamede / Laroá)</span>
+                      <span>Prioridad Activa: Pistas de Monte, Senderos Forestales y Desniveles de Sierra</span>
                     </span>
                   )}
                   {sport === 'trail' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                       <Mountain className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Prioridad Activa: Senderos de Tierra, Caminos Tradicionales y Desnivel de Monte</span>
+                      <span>Prioridad Activa: Senderos de Tierra, Calzadas Tradicionales y Desnivel de Monte</span>
                     </span>
                   )}
                   {sport === 'cycling' && (
@@ -503,6 +503,47 @@ export function RouteExplorer({
                     </span>
                   )}
                 </div>
+
+                {/* Selector de Macizos de Montaña para MTB y Trail */}
+                {(sport === 'mtb' || sport === 'trail') && selectedZoneId === 'xinzo' && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Macizo / Sierra de Monte Priorizada:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {XINZO_MOUNTAIN_SECTORS.map((sector, sIdx) => {
+                        const isCurrentSector = (seedVariant % XINZO_MOUNTAIN_SECTORS.length) === sIdx;
+                        return (
+                          <button
+                            key={sector.id}
+                            type="button"
+                            onClick={() => setSeedVariant(sIdx)}
+                            className={`p-2.5 rounded-lg border text-left transition-all ${
+                              isCurrentSector
+                                ? 'bg-orange-50/90 border-orange-500 ring-2 ring-orange-200 text-orange-950 shadow-xs'
+                                : 'bg-slate-50/70 hover:bg-slate-100 border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="font-extrabold text-xs flex items-center gap-1.5">
+                                <Mountain className={`w-3.5 h-3.5 ${isCurrentSector ? 'text-orange-600' : 'text-slate-400'}`} />
+                                {sector.shortName}
+                              </span>
+                              {isCurrentSector && (
+                                <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-orange-600 text-white">
+                                  Activo
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-500 line-clamp-1">
+                              {sector.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Botón Otra Dirección */}

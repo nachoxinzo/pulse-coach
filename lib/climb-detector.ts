@@ -146,7 +146,7 @@ export function extractClimbsFromProfile(
 ): DetectedClimb[] {
   if (!profile || profile.length < 4) return [];
 
-  // 1. Calcular segmentos elementales entre puntos del perfil
+  // 1. Calcular segmentos elementales entre puntos del perfil con ventana de suavizado (mín 150m)
   const segments: {
     startIdx: number;
     endIdx: number;
@@ -160,13 +160,24 @@ export function extractClimbsFromProfile(
     gradPct: number;
   }[] = [];
 
+  const smoothingWindowM = 150;
+
   for (let i = 1; i < profile.length; i++) {
     const p1 = profile[i - 1];
     const p2 = profile[i];
-    const dDistKm = Math.max(0.001, p2.distanceKm - p1.distanceKm);
+    const dDistKm = Math.max(0.01, p2.distanceKm - p1.distanceKm);
     const dDistM = dDistKm * 1000;
     const dEleM = p2.elevationM - p1.elevationM;
-    const gradPct = Number(((dEleM / dDistM) * 100).toFixed(1));
+
+    // Buscar punto hacia atrás para promediar sobre la ventana de 150m (evita picos por muestreo discreto)
+    let backIdx = i - 1;
+    while (backIdx > 0 && (p2.distanceKm - profile[backIdx].distanceKm) * 1000 < smoothingWindowM) {
+      backIdx--;
+    }
+    const winDistM = Math.max(50, (p2.distanceKm - profile[backIdx].distanceKm) * 1000);
+    const winEleM = p2.elevationM - profile[backIdx].elevationM;
+    const rawGrad = (winEleM / winDistM) * 100;
+    const gradPct = Number(Math.max(-28, Math.min(28, rawGrad)).toFixed(1));
 
     segments.push({
       startIdx: i - 1,
